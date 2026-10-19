@@ -7,6 +7,12 @@ Sofa brings your TV’s remote, apps, inputs and volume into a small native macO
 
 **Beta software. macOS 26 or later · Apple silicon.** Tested with one Hisense A4K-series VIDAA TV; compatibility with other models and firmware is not guaranteed. This is independent software, not an official Hisense, VIDAA or Apple product.
 
+<p align="center">
+  <img src="docs/images/onboarding.png" width="300" alt="Sofa first-run welcome and TV setup">
+  <img src="docs/images/remote.png" width="300" alt="Sofa glass remote with directional pad, playback and volume controls">
+</p>
+<p align="center"><sub>Native app screenshots. Remote values are simulated for this preview.</sub></p>
+
 ## Download
 
 Get the latest beta from [GitHub Releases](https://github.com/iamrainhard/sofa/releases). Release notes identify signing and notarization status; source availability alone does not mean a notarized download is available.

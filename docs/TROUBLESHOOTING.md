@@ -6,9 +6,13 @@ Wake the TV and confirm it and your Mac are on the same network. Guest Wi-Fi, cl
 
 Allow Sofa in System Settings → Privacy & Security → Local Network. Discovery support varies by model; manual pairing is always available.
 
+If you previously used a development build and the signed beta cannot connect despite that switch being on, quit Sofa, turn its Local Network switch off, reopen Sofa, then turn that same switch on again. This resolved a stale permission after changing signing identities during beta testing. Leave other apps’ permissions unchanged.
+
 ## Pairing fails
 
 Check the TV address. Show a fresh code on the TV and enter its digits. In Sofa Settings, choose Pair again if an old token has stopped working. A changed certificate requires you to verify the TV before trusting it again. Do not accept an unexpected certificate merely to dismiss the prompt.
+
+When upgrading from a development build, macOS may ask whether the newly signed Sofa can access its existing pairing token in your login Keychain. Approve it in the macOS dialog if you installed the expected Sofa build. Enter your Mac password only in that system dialog; never send it in a bug report.
 
 ## TV is off, controls unavailable
 
