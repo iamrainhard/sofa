@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/images/icon.png" width="128" alt="Sofa app icon"></p>
 <h1 align="center">Sofa</h1>
 <p align="center">Your TV. Within reach.</p>
-<p align="center">A free, open-source menu-bar remote for Hisense VIDAA and compatible Google / Android TVs.</p>
+<p align="center">A free, open-source menu-bar remote for Hisense VIDAA, with experimental Google / Android TV and Samsung Tizen support.</p>
 
 Sofa brings your TV’s remote, apps, inputs and volume into a small native macOS panel. Built with SwiftUI, AppKit and Apple’s Liquid Glass components.
 
@@ -16,15 +16,15 @@ Sofa brings your TV’s remote, apps, inputs and volume into a small native macO
 
 ## Download
 
-Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.4.0-beta.1-build12).
+Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.5.0-beta.1-build13).
 
-**Build 12 is an early, Developer ID-signed preview. Apple notarization is pending.** The DMG includes an Applications shortcut and installation instructions; a ZIP alternative and SHA-256 checksums are also available. macOS may block the first launch. You can wait for notarization, or follow [Apple’s guidance](https://support.apple.com/en-us/102445) to use **System Settings → Privacy & Security → Open Anyway** for this beta. Do not disable Gatekeeper globally.
+**Build 13 is an early, Developer ID-signed preview. Apple notarization is pending.** The DMG includes an Applications shortcut and installation instructions; a ZIP alternative and SHA-256 checksums are also available. macOS may block the first launch. You can wait for notarization, or follow [Apple’s guidance](https://support.apple.com/en-us/102445) to use **System Settings → Privacy & Security → Open Anyway** for this beta. Do not disable Gatekeeper globally.
 
-1. [Download the DMG](https://github.com/iamrainhard/sofa/releases/download/v0.4.0-beta.1-build12/Sofa-0.4.0-beta.1-build12-arm64-preview.dmg), open it, and drag **Sofa** onto **Applications**. Eject the disk image.
+1. [Download the DMG](https://github.com/iamrainhard/sofa/releases/download/v0.5.0-beta.1-build13/Sofa-0.5.0-beta.1-build13-arm64-preview.dmg), open it, and drag **Sofa** onto **Applications**. Eject the disk image.
 2. Open Sofa. Its couch icon appears in your menu bar; it has no persistent Dock window.
 3. Keep your Mac and TV on the same home network. Allow Local Network access when macOS asks.
 4. Choose **Set up my TV**. Discover a nearby compatible TV or enter the private IPv4 address shown in the TV’s network settings.
-5. Sofa detects the connection platform; you can also choose it manually. Verify the address and trust the TV’s certificate. VIDAA uses a numeric pairing code; Google / Android TV displays a six-character hexadecimal code (digits and A–F).
+5. Sofa detects the connection platform; you can also choose it manually. Verify the address and trust the TV’s certificate. VIDAA uses a numeric pairing code; Google / Android TV displays a six-character hexadecimal code (digits and A–F). For Samsung Tizen, select **Allow** on the TV.
 6. Once paired, choose a name and open Sofa. Existing VIDAA pairings are preserved when upgrading.
 
 No Python, Homebrew, Xcode or Sofa account is required to use the packaged app. Login startup is optional and off by default.
@@ -51,15 +51,16 @@ The TV illustration shows app/input identity, not screen mirroring. Sofa control
 | --- | --- | --- |
 | Hisense VIDAA | Tested on one A4K-series TV | Existing remote, app/input catalogs and absolute-volume slider retained. |
 | Google TV / Android TV, any brand | Experimental in 0.4 | Requires Android TV Remote Service v2. On-screen PIN pairing, navigation, playback keys, volume controls, current app/power/volume reports where supplied, app shortcuts and input-menu key. |
+| Samsung Tizen | Experimental in 0.5 | Secure remote service, on-TV Allow approval, navigation, playback, volume keys and a slider when a compatible UPnP volume service responds. Hardware testing pending. |
 | Roku, Fire TV, Xumo | Not implemented | Selecting Android TV does not make these devices compatible. |
 
-Android support is platform-based, not restricted to Hisense. A TV must expose Android TV Remote Service; generic Android boxes without that service are not supported. No root, ADB or developer mode is needed. Discovery uses Bonjour and VIDAA SSDP (plus Samsung SSDP in source build 13), with private IPv4/manual setup as a fallback.
+Android support is platform-based, not restricted to Hisense. A TV must expose Android TV Remote Service; generic Android boxes without that service are not supported. No root, ADB or developer mode is needed. Discovery uses Bonjour and VIDAA SSDP (plus Samsung SSDP in build 13), with private IPv4/manual setup as a fallback.
 
 Android app tiles are **shortcuts, not a detected installed-app list**. Apps must already be installed and handle the link. Android keeps the glass slider when volume feedback is available: Sofa sends one relative key at a time, follows the latest drag target, and settles to the nearest native volume step. If feedback stalls, it stops and falls back to −/+ until reconnect. It may respond more slowly than VIDAA’s direct setter. Input, channel, mute and wake behavior depend on the television and audio setup. If a manufacturer keyboard behaves poorly, disable **Keyboard and current app updates** in Settings and reconnect. No voice recording is implemented.
 
-## Experimental Samsung Tizen (source build 13)
+## Experimental Samsung Tizen (build 13)
 
-The current source adds Samsung Tizen support in **0.5.0-beta.1 build 13**. The downloadable build 12 above does **not** include it yet. No physical Samsung TV has been tested.
+The **0.5.0-beta.1 build 13** beta adds Samsung Tizen support. No physical Samsung TV has been tested.
 
 - Find a Samsung TV on the local network, or select **Samsung Tizen · Experimental** and enter its private IPv4 address. This adapter requires the secure Tizen WebSocket service on TCP 8002; older Orsay and plaintext-only models are not supported.
 - Verify the TV address and trust its certificate. Select **Allow** on the television using its physical remote. No PIN, SmartThings account, root or developer mode is required. Sofa saves the pairing token in its own Keychain namespace for reconnects. Denied or expired requests have a retry path.

@@ -26,9 +26,9 @@ The app shelf contains named shortcuts, not installation detection. A shortcut m
 
 If a TV's on-screen keyboard disappears in favor of a mobile keyboard prompt, turn off **Settings → General → Keyboard and current app updates** and reconnect. This also disables current-app reporting. Playback buttons do not imply that Sofa can read playback state.
 
-## Samsung Tizen setup (source build 13)
+## Samsung Tizen setup (build 13)
 
-Samsung is experimental and has not yet been tested on physical hardware. The current public build 12 does not include this adapter. In a source build, choose **Samsung Tizen · Experimental**, keep the TV awake, and select **Allow** on its approval prompt. Saved tokens reconnect without entering a code when the firmware permits. If no prompt appears or permission was denied, check **External Device Manager → Device Connection Manager** and remove Sofa from blocked devices, then choose **Try again**. Menu names vary with firmware. **Pair again** resets Sofa's Samsung token only.
+Samsung is experimental and has not yet been tested on physical hardware. Support starts with beta build 13. Choose **Samsung Tizen · Experimental**, keep the TV awake, and select **Allow** on its approval prompt. Saved tokens reconnect without entering a code when the firmware permits. If no prompt appears or permission was denied, check **External Device Manager → Device Connection Manager** and remove Sofa from blocked devices, then choose **Try again**. Menu names vary with firmware. **Pair again** resets Sofa's Samsung token only.
 
 The TV must expose secure remote control on TCP 8002. Older Orsay models and TVs with only plaintext TCP 8001 remote control are outside this beta. SSDP discovery uses UDP 1900; optional device information uses HTTP TCP 8001, and the optional volume service uses the same TV's advertised UPnP port. No router port-forwarding is needed.
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0-beta.1 — build 13 early preview
+
+- Add experimental Samsung Tizen secure WebSocket control, SSDP discovery and manual setup.
+- Pair by choosing Allow on the TV; save the token in a separate Keychain namespace and pin the TV certificate before sending it.
+- Keep the glass volume slider only with verified compatible UPnP volume feedback; retain −/+ fallback, unknown mute state and refresh recovery.
+- Show installed app tiles only when Samsung supplies a catalog; otherwise offer Open Home. Input-menu key replaces unsupported direct input lists.
+- Keep remote controls responsive during optional metadata and service discovery.
+- Preserve VIDAA and Android wire adapters and existing pairing namespaces. All 53 Python tests and Swift checks pass; build 13 reconnects to the development VIDAA TV.
+- Samsung and Android support remain unverified on physical hardware. Samsung network wake and older Orsay models are not supported.
+
 ## 0.4.0-beta.1 — build 12 early preview
 
 - Match the menu-bar couch to the website’s exact stroke-only outline, with rounded joins and no filled areas (build 12).

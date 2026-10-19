@@ -17,13 +17,15 @@ Use an Apple silicon Mac with an active Apple Developer membership, a Developer 
 4. Upload through Xcode’s existing account session:
 
    ```sh
-   SOFA_TEAM_ID=TEAMID SOFA_SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)' bash scripts/notarize-xcode.sh
+   SOFA_ARCHIVE_PATH=build/Sofa-build13.xcarchive SOFA_UPLOAD_PATH=build/notarization-build13 SOFA_TEAM_ID=TEAMID SOFA_SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)' bash scripts/notarize-xcode.sh
    ```
+
+Keep a separate archive path for every submitted build. The upload script refuses to overwrite an existing archive; inspect its status instead of resubmitting an uncertain upload.
 
 5. After Apple finishes processing, export its accepted archive:
 
    ```sh
-   xcodebuild -exportNotarizedApp -archivePath build/Sofa.xcarchive -exportPath build/notarized
+   xcodebuild -exportNotarizedApp -archivePath build/Sofa-build13.xcarchive -exportPath build/notarized-build13
    ```
 
 6. Run `bash scripts/package.sh`. This refuses to package an app without a valid staple and successful Gatekeeper assessment, then extracts the ZIP and repeats those checks on the actual download. If Xcode exports a differently named folder, pass its app path to the script.

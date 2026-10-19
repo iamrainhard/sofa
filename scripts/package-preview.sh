@@ -29,8 +29,9 @@ Installation:
 4. Keep your Mac and TV on the same network. Allow Local Network access.
 5. Choose Set up my TV and follow the on-TV pairing instructions.
 
-VIDAA was tested on one Hisense A4K-series TV. Google / Android TV support
-is experimental and has not yet been tested on physical hardware.
+VIDAA was tested on one Hisense A4K-series TV. Google / Android TV and Samsung
+Tizen support are experimental and have not been tested on physical hardware.
+Samsung uses on-TV Allow approval; its slider requires compatible feedback.
 Compatibility depends on the TV, firmware and app. No Sofa account required.
 
 Downloads and source: https://github.com/iamrainhard/sofa

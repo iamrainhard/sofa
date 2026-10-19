@@ -36,8 +36,11 @@ If you choose to proceed, follow Apple's per-app Open Anyway instructions:
 https://support.apple.com/en-us/102445
 Do not disable Gatekeeper globally or remove quarantine in Terminal.
 
-VIDAA tested on one Hisense A4K-series TV. Google / Android TV is experimental
-and has not yet been tested on physical hardware. Compatibility varies.
+VIDAA tested on one Hisense A4K-series TV. Google / Android TV and Samsung
+Tizen support are experimental and have not been tested on physical hardware.
+Samsung requires secure remote control and on-TV Allow approval. Its volume
+slider appears only with compatible volume feedback; otherwise use -/+.
+Compatibility varies by model and firmware.
 No Python, Homebrew, Xcode or Sofa account is needed to run the app.
 
 https://github.com/iamrainhard/sofa
