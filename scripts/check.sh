@@ -9,4 +9,6 @@ swiftc Sources/HisenseRemote/VolumeInteraction.swift tests/VolumeInteractionChec
 build/checks/volume
 swiftc Sources/HisenseRemote/TVCatalog.swift tests/CatalogChecks.swift -o build/checks/catalog
 build/checks/catalog
+swiftc Sources/HisenseRemote/ConnectionInput.swift tests/ConnectionInputChecks.swift -o build/checks/connection
+build/checks/connection
 swift build -c release

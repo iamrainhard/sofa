@@ -9,7 +9,7 @@ struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer(minLength: 12)
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 100, height: 100)
-            if !started && model.previewState != "pair" && !model.ready {
+            if !started && (model.previewState == nil || model.previewState == "welcome") && !model.ready {
                 VStack(spacing: 8) {
                     Text("Meet Sofa.").font(.system(size: 32, weight: .semibold, design: .rounded))
                     Text("Your TV. Within reach.").font(.title3).foregroundStyle(.secondary)
@@ -31,6 +31,7 @@ struct OnboardingView: View {
                 TextField("Give your TV a name (optional)", text: $model.nickname).textFieldStyle(.roundedBorder)
                 Text("You’ll find Sofa under the TV icon in your menu bar. You can change startup preferences in Settings.")
                     .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                if let warning = model.credentialWarning { Text(warning).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true) }
                 Button("Open Sofa") { model.completeSetup() }.buttonStyle(.glassProminent).controlSize(.large)
             } else {
                 ConnectionSetupView(model: model)
@@ -58,7 +59,7 @@ struct ConnectionSetupView: View {
     @ObservedObject var model: RemoteModel
     @State private var certificateDetails = false
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             if model.status == "trust" {
                 Text(model.certificateChanged ? "TV identity changed" : "Is this your TV?").font(.title2.bold())
                 Text(model.certificateChanged ? "The certificate differs from your saved TV. Verify the IP address on your TV before trusting it again." : "Check this address matches Settings → Network on your TV before pairing.")
@@ -75,30 +76,42 @@ struct ConnectionSetupView: View {
                 Button(model.pendingPair ? "Show a new code" : "Show code on TV") { model.pair() }.buttonStyle(.glass)
                 TextField("Pairing code", text: $model.pin).textFieldStyle(.roundedBorder)
                     .font(.title2.monospaced()).multilineTextAlignment(.center)
-                    .onChange(of: model.pin) { _, value in model.pin = String(value.filter(\.isNumber).prefix(8)) }
+                    .onChange(of: model.pin) { _, value in model.pin = ConnectionInput.pairingCode(value) }
                     .onSubmit { if validPIN { model.submitPIN() } }
                 Button("Pair Mac") { model.submitPIN() }.buttonStyle(.glassProminent).disabled(!validPIN)
                 Button("Back") { model.disconnect() }.buttonStyle(.plain)
             } else {
                 Text("Find your TV").font(.title2.bold())
-                Text("Turn on your TV and connect it to the same network as this Mac.").font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                Text("Turn on your TV and use the same Wi-Fi. If macOS asks, allow Local Network access so Sofa can find and control it.").font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 Button { model.discover() } label: {
                     HStack { if model.discovering { ProgressView().controlSize(.small) }; Text(model.discovering ? "Looking for TVs…" : "Find nearby TVs") }
                 }.buttonStyle(.glass).disabled(model.discovering || model.isBusy)
                 if !model.discoveryMessage.isEmpty { Text(model.discoveryMessage).font(.caption).foregroundStyle(.secondary) }
-                ForEach(model.discoveredTVs.prefix(3)) { tv in
-                    Button { model.host = tv.host; model.connect() } label: {
-                        HStack { Image(systemName: "tv"); VStack(alignment: .leading) { Text(tv.name).lineLimit(1); Text(tv.host).font(.caption).foregroundStyle(.secondary) }; Spacer(); Image(systemName: "chevron.right") }.padding(5)
-                    }.buttonStyle(.glass).disabled(model.isBusy)
+                if !model.discoveredTVs.isEmpty {
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 10) {
+                            ForEach(model.discoveredTVs) { tv in
+                                Button { model.host = tv.host; model.connect() } label: {
+                                    HStack { Image(systemName: "tv"); VStack(alignment: .leading) { Text(tv.name).lineLimit(1); Text(tv.host).font(.caption).foregroundStyle(.secondary) }; Spacer(); Image(systemName: "chevron.right") }.padding(5).frame(width: 210)
+                                }.buttonStyle(.glass).disabled(model.isBusy)
+                            }
+                        }.padding(4)
+                    }.scrollIndicators(.hidden).frame(height: 60)
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Or enter the TV’s IP address").font(.caption).foregroundStyle(.secondary)
-                    TextField("192.168.1.100", text: $model.host).textFieldStyle(.roundedBorder).onSubmit { model.connect() }
+                    TextField("192.168.1.100", text: $model.host).textFieldStyle(.roundedBorder).disabled(model.isBusy).onSubmit { if !model.isBusy { model.connect() } }
                     Text("Find it in your TV’s Settings → Network.").font(.caption2).foregroundStyle(.secondary)
                 }
                 Button { model.connect() } label: {
                     HStack { if model.isBusy { ProgressView().controlSize(.small) }; Text(model.isBusy ? "Connecting…" : "Connect") }
                 }.buttonStyle(.glassProminent).disabled(model.host.isEmpty || model.isBusy)
+                if model.pairingNeedsAttention {
+                    Button("Pair again with a new TV code") { model.repair() }.buttonStyle(.glass)
+                }
+                Button("Open Privacy & Security settings") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork") { NSWorkspace.shared.open(url) }
+                }.buttonStyle(.plain).font(.caption).foregroundStyle(.tint)
             }
             if let error = model.error { Text(error).font(.caption).foregroundStyle(.orange).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true) }
         }

@@ -28,13 +28,15 @@ No Python, Homebrew, Xcode or Sofa account is required to use the packaged app. 
 ## What’s inside
 
 - Native glass menu-bar interface and an original layered app icon.
-- Large directional pad with OK, Home, Back and Menu.
+- Circular glass clickpad with centre OK, Home, Back and Menu, inspired by the Siri Remote.
+- Compact active-app icon and name on the remote; original catalog transparency is preserved.
 - Playback buttons, volume and channel rockers, mute and numeric keypad.
 - Horizontal app shelf with logos from your own TV catalog, plus input selection.
 - TV-reported active app/input and power status; pending changes are shown honestly.
 - Smooth volume interaction with coalesced commands and delayed readback protection.
 - Pairing credentials stored in macOS Keychain and TV certificate pinning.
 - First-run pairing, TV naming, reconnect-on-launch preference and optional login startup.
+- Local Network permission guidance, a Privacy & Security settings shortcut and recoverable Keychain errors.
 - Keyboard arrows and Return for the remote, accessibility labels, Reduce Motion support.
 
 The TV illustration shows app/input identity, not screen mirroring. Sofa controls the current VIDAA OS; it does not replace firmware, install TV apps, bypass subscriptions or provide voice search. Network wake depends on the TV’s standby settings. Bluetooth/audio routing and Chromecast/Google TV control are not included.

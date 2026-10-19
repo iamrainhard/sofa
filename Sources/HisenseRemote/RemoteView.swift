@@ -39,7 +39,7 @@ struct RemoteView: View {
             else { MacBackdrop().ignoresSafeArea() }
         }
         .focusable().focusEffectDisabled().focused($keyboardFocused)
-        .onAppear { keyboardFocused = true }
+        .onAppear { keyboardFocused = model.onboardingComplete }
         .onChange(of: model.viewMode) { _, _ in keyboardFocused = true }
         .onKeyPress { press in
             if model.onboardingComplete, volumeFocused, model.ready, !model.settingsVisible {

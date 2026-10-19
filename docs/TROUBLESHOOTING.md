@@ -6,6 +6,8 @@ Wake the TV and confirm it and your Mac are on the same network. Guest Wi-Fi, cl
 
 Allow Sofa in System Settings → Privacy & Security → Local Network. Discovery support varies by model; manual pairing is always available.
 
+The setup screen includes **Open Privacy & Security settings**. In that pane, choose **Local Network**, allow Sofa, then return to Sofa and choose **Connect**. Sofa never changes your macOS permissions automatically. A Mac on a phone hotspot generally cannot reach a TV on your home Wi-Fi; return both devices to the same network.
+
 If you previously used a development build and the signed beta cannot connect despite that switch being on, quit Sofa, turn its Local Network switch off, reopen Sofa, then turn that same switch on again. This resolved a stale permission after changing signing identities during beta testing. Leave other apps’ permissions unchanged.
 
 ## Pairing fails

@@ -16,6 +16,9 @@ final class RemoteModel: ObservableObject {
     @Published var discoveredTVs: [DiscoveredTV] = []
     @Published var discovering = false
     @Published var discoveryMessage = ""
+    @Published var localNetworkNeedsAttention = false
+    @Published var pairingNeedsAttention = false
+    @Published private(set) var credentialWarning: String?
     @Published var reconnectOnLaunch = UserDefaults.standard.object(forKey: "autoConnect") as? Bool ?? true {
         didSet { defaults.set(reconnectOnLaunch, forKey: "autoConnect") }
     }
@@ -23,7 +26,9 @@ final class RemoteModel: ObservableObject {
     func completeSetup() { onboardingComplete = true; defaults.set(true, forKey: "onboardingComplete") }
     func discover() {
         guard previewState == nil, !discovering else { return }
-        startBridge(); discovering = true; discoveredTVs = []; discoveryMessage = "Looking on your local network…"
+        startBridge()
+        guard process != nil else { return }
+        discovering = true; discoveredTVs = []; discoveryMessage = "Looking on your local network…"
         send(["action": "discover"])
         DispatchQueue.main.asyncAfter(deadline: .now() + 25) { [weak self] in
             guard let self, self.discovering else { return }
@@ -31,7 +36,8 @@ final class RemoteModel: ObservableObject {
         }
     }
     func forgetTV() {
-        disconnect(); clearCredentials(host); defaults.removeObject(forKey: "certificate.\(host)")
+        guard clearCredentials(host) else { error = "Sofa couldn’t remove the pairing from Keychain. Unlock your login Keychain and try again."; return }
+        disconnect(); defaults.removeObject(forKey: "certificate.\(host)")
         host = ""; nickname = ""; deviceName = "Your TV"; defaults.removeObject(forKey: "tvHost")
         onboardingComplete = false; defaults.set(false, forKey: "onboardingComplete"); settingsVisible = false
     }
@@ -39,6 +45,7 @@ final class RemoteModel: ObservableObject {
     @Published var status = "offline" {
         didSet {
             if status != "ready" {
+                hasVolume = false
                 powerState = .unknown; powerChanging = false
                 activeDestination = nil; pendingDestination = nil; destinationFeedback = nil
                 destinationTimeout?.cancel(); destinationRefresh?.cancel()
@@ -114,6 +121,7 @@ final class RemoteModel: ObservableObject {
     }
     private var networkCheck: NWConnection?
     private var process: Process?
+    private var bridgeGeneration = UUID()
     private var input: FileHandle?
     private var reader: Task<Void, Never>?
     private var volumeWork: DispatchWorkItem?
@@ -153,6 +161,15 @@ final class RemoteModel: ObservableObject {
             }
             if previewState == "remote" { viewMode = 1 }
             if previewState == "pair" { status = "pairing" }
+            if previewState == "network" {
+                localNetworkNeedsAttention = true
+                error = "Allow Sofa in System Settings → Privacy & Security → Local Network, then Connect again."
+            }
+            if previewState == "trust" { status = "trust"; fingerprint = Array(repeating: "AB:12", count: 10).joined(separator: ":") }
+            if previewState == "discovery" {
+                discoveredTVs = (1...5).map { DiscoveredTV(host: "192.168.1.\(100 + $0)", name: "Living Room TV \($0)", model: "VIDAA") }
+                discoveryMessage = "Choose your TV to connect."
+            }
             return
         }
         startBridge()
@@ -175,6 +192,7 @@ final class RemoteModel: ObservableObject {
         stderr.fileHandleForReading.readabilityHandler = { handle in _ = handle.availableData }
         do {
             try task.run()
+            let generation = UUID(); bridgeGeneration = generation
             process = task; input = stdin.fileHandleForWriting
             let handle = stdout.fileHandleForReading
             reader = Task.detached { [weak self] in
@@ -187,15 +205,20 @@ final class RemoteModel: ObservableObject {
                         let line = buffer[..<newline]
                         buffer.removeSubrange(...newline)
                         if let object = try? JSONSerialization.jsonObject(with: Data(line)) as? [String: Any] {
-                            await self?.receive(object)
+                            await self?.receive(object, generation: generation)
                         }
                     }
                 }
-                await self?.bridgeEnded()
+                await self?.bridgeEnded(generation: generation)
             }
         } catch { self.error = "Could not start the local TV bridge: \(error.localizedDescription)" }
     }
-    func bridgeEnded() {
+    private func receive(_ object: [String: Any], generation: UUID) {
+        guard generation == bridgeGeneration else { return }
+        receive(object)
+    }
+    func bridgeEnded(generation: UUID) {
+        guard generation == bridgeGeneration else { return }
         process = nil; input = nil; status = "offline"; isBusy = false
     }
     func shutdown() { destinationTimeout?.cancel(); destinationRefresh?.cancel(); volumeWork?.cancel(); volumeTimeout?.cancel(); volumeReadback?.cancel(); powerTimeout?.cancel(); powerRefresh?.cancel(); networkCheck?.cancel(); input?.closeFile(); process?.terminate(); reader?.cancel() }
@@ -206,42 +229,49 @@ final class RemoteModel: ObservableObject {
     }
     func connect() {
         guard previewState == nil else { status = "pairing"; return }
-        networkCheck?.cancel()
-        send(["action": "disconnect"])
-        let candidate = host.trimmingCharacters(in: .whitespacesAndNewlines)
-        let parts = candidate.split(separator: ".", omittingEmptySubsequences: false).compactMap { UInt8($0) }
-        guard parts.count == 4, parts[0] == 10 || (parts[0] == 192 && parts[1] == 168) || (parts[0] == 172 && (16...31).contains(parts[1])) else {
+        guard let candidate = ConnectionInput.privateIPv4(host) else {
             error = "Enter your TV’s private IPv4 address, such as 192.168.1.100."; return
         }
+        networkCheck?.cancel(); networkCheck = nil
+        startBridge()
+        guard process != nil else { isBusy = false; status = "offline"; return }
+        send(["action": "disconnect"])
+        host = candidate; localNetworkNeedsAttention = false; pairingNeedsAttention = false; credentialWarning = nil
         error = nil; status = "connecting"; isBusy = true
         let check = NWConnection(host: NWEndpoint.Host(candidate), port: 36669, using: .tcp)
         networkCheck = check
         check.stateUpdateHandler = { [weak self, weak check] state in
             DispatchQueue.main.async {
-                guard let self, self.networkCheck === check else { return }
+                guard let self, let check, self.networkCheck === check else { return }
                 switch state {
                 case .ready:
-                    check?.cancel(); self.networkCheck = nil
+                    check.cancel(); self.networkCheck = nil
+                    guard self.host == candidate else {
+                        self.isBusy = false; self.status = "offline"
+                        self.error = "The address changed. Choose Connect to use the new address."
+                        return
+                    }
                     self.connectBridge()
                 case .preparing:
                     self.error = nil; self.status = "connecting"; self.isBusy = true
                 case .waiting:
                     self.isBusy = false; self.status = "offline"
-                    if check?.currentPath?.unsatisfiedReason == .localNetworkDenied {
+                    if check.currentPath?.unsatisfiedReason == .localNetworkDenied {
+                        self.localNetworkNeedsAttention = true
                         self.error = "Allow Sofa in System Settings → Privacy & Security → Local Network, then Connect again."
                     } else { self.error = "TV not reachable. Make sure it is awake and on the same Wi-Fi." }
                 case .failed(let error):
                     self.isBusy = false; self.status = "offline"; self.error = error.localizedDescription
-                    check?.cancel(); self.networkCheck = nil
+                    check.cancel(); self.networkCheck = nil
                 default: break
                 }
             }
         }
         check.start(queue: .global(qos: .userInitiated))
         DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self, weak check] in
-            guard let self, self.networkCheck === check, self.isBusy else { return }
-            self.error = "The TV did not respond. Check its IP address and Local Network permission."
-            self.isBusy = false; self.status = "offline"; check?.cancel(); self.networkCheck = nil
+            guard let self, let check, self.networkCheck === check else { return }
+            if !self.localNetworkNeedsAttention { self.error = "The TV did not respond. Check its IP address and Local Network permission." }
+            self.isBusy = false; self.status = "offline"; check.cancel(); self.networkCheck = nil
         }
     }
     private func connectBridge() {
@@ -252,10 +282,16 @@ final class RemoteModel: ObservableObject {
         error = nil; fingerprint = ""; isBusy = true; status = "connecting"
         hasVolume = false; apps = []; sources = []; connectedHost = host
         defaults.set(host, forKey: "tvHost")
-        send(["action": "probe", "host": host])
         var request: [String: Any] = ["action": "connect", "host": host, "device": deviceID,
                                      "fingerprint": defaults.string(forKey: "certificate.\(host)") ?? ""]
-        if let saved = loadCredentials(host) { request["saved"] = saved }
+        do {
+            if let saved = try loadCredentials(host) { request["saved"] = saved }
+        } catch {
+            pairingNeedsAttention = true
+            self.error = "Sofa couldn’t read its saved pairing. Unlock your login Keychain and allow Sofa when macOS asks, then connect again. If the saved pairing is damaged, use Pair again."
+            isBusy = false; status = "offline"; return
+        }
+        send(["action": "probe", "host": host])
         send(request)
     }
     func trustTV() {
@@ -273,18 +309,20 @@ final class RemoteModel: ObservableObject {
         activity = "Checking pairing code…"
     }
     func repair() {
-        clearCredentials(host)
+        guard clearCredentials(host) else { error = "Sofa couldn’t reset the saved pairing. Unlock your login Keychain and try again."; return }
         connect()
     }
     func disconnect() {
         networkCheck?.cancel(); networkCheck = nil
         reconnectWork?.cancel()
-        send(["action": "disconnect"]); status = "offline"; hasVolume = false
+        send(["action": "disconnect"]); status = "offline"; hasVolume = false; isBusy = false
+        pendingPair = false; pin = ""
         apps = []; sources = []; sourceName = "Your favourite screen."
     }
     func refresh() { error = nil; send(["action": "refresh"]) }
     func key(_ key: String, label: String) {
         guard ready else { settingsVisible = true; return }
+        if previewState != nil { activity = "Preview · \(label)"; return }
         send(["action": "key", "key": key, "label": label])
     }
     func beginVolumeEdit() { volumeInteraction.begin() }
@@ -375,10 +413,12 @@ final class RemoteModel: ObservableObject {
         case "volume_result": volumeCompleted(object)
         case "mute": muted = object["value"] as? Bool ?? false
         case "status":
+            // The disconnect acknowledgement belongs to the previous session, not the native permission/reachability check.
+            if networkCheck != nil, object["value"] as? String == "offline" { return }
             status = object["value"] as? String ?? "offline"
             isBusy = status == "connecting"
             if ready {
-                pendingPair = false; pin = ""; error = nil; activity = "You’re in control"
+                pendingPair = false; pin = ""; error = credentialWarning; activity = "You’re in control"
 
             }
         case "trust":
@@ -417,24 +457,34 @@ final class RemoteModel: ObservableObject {
     private func keychainQuery(_ host: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: host]
     }
-    private func loadCredentials(_ host: String) -> [String: Any]? {
+    private func loadCredentials(_ host: String) throws -> [String: Any]? {
         var query = keychainQuery(host)
         query[kSecReturnData as String] = true; query[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data else { return nil }
-        return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess, let data = result as? Data,
+              let value = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status == errSecSuccess ? errSecDecode : status))
+        }
+        return value
     }
     private func saveCredentials(_ value: [String: Any], host: String) {
+        credentialWarning = nil
         guard let data = try? JSONSerialization.data(withJSONObject: value) else { return }
         let query = keychainQuery(host)
         let status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
         if status == errSecItemNotFound {
             var add = query; add[kSecValueData as String] = data
             add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-            if SecItemAdd(add as CFDictionary, nil) != errSecSuccess { error = "Paired, but the token could not be saved to Keychain. You may need to pair again next time." }
-        } else if status != errSecSuccess { error = "Could not update the pairing token in Keychain." }
+            if SecItemAdd(add as CFDictionary, nil) != errSecSuccess { credentialWarning = "Paired, but the token could not be saved to Keychain. You may need to pair again next time." }
+        } else if status != errSecSuccess { credentialWarning = "Could not update the pairing token in Keychain. You may need to pair again next time." }
+        if let credentialWarning { error = credentialWarning }
     }
-    private func clearCredentials(_ host: String) { SecItemDelete(keychainQuery(host) as CFDictionary) }
+    private func clearCredentials(_ host: String) -> Bool {
+        let result = SecItemDelete(keychainQuery(host) as CFDictionary)
+        return result == errSecSuccess || result == errSecItemNotFound
+    }
 }
 
 struct DiscoveredTV: Identifiable { var id: String { host }; let host: String; let name: String; let model: String }

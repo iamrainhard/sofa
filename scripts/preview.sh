@@ -6,7 +6,7 @@ python3 - "${1:-welcome}" <<'PY'
 import plistlib, subprocess, sys, shutil
 from pathlib import Path
 state = sys.argv[1]
-assert state in ('welcome', 'pair', 'success', 'remote')
+assert state in ('welcome', 'pair', 'success', 'remote', 'network', 'trust', 'discovery')
 src=Path('build/Sofa.app'); dst=Path('build/Sofa Preview.app')
 if dst.exists(): shutil.rmtree(dst)
 subprocess.run(['ditto',str(src),str(dst)],check=True)

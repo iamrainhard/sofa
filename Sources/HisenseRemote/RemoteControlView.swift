@@ -9,14 +9,8 @@ struct RemoteControlView: View {
     @State private var keypadVisible = false
 
     var body: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 6) {
-                Image(systemName: "tv").font(.system(size: 11))
-                Text(model.ready ? model.sourceName : "Connect your TV to get started")
-                    .font(.system(size: 11, weight: .medium)).lineLimit(1)
-                Spacer()
-                Text("REMOTE").font(.system(size: 8, weight: .semibold)).tracking(1.4)
-            }.foregroundStyle(.secondary).padding(.horizontal, 5)
+        VStack(spacing: 10) {
+            activeApp
 
             directionalPad
 
@@ -81,27 +75,46 @@ struct RemoteControlView: View {
         }.padding(.horizontal, 26).padding(.top, 5)
     }
 
+    private var activeApp: some View {
+        let platform = TVPlatform(reportedName: model.sourceName, connected: model.ready)
+        let artwork = model.apps.first { model.activeDestination?.matches($0) == true }?.artworkURL
+        return HStack(spacing: 8) {
+            // Keep the catalog's original alpha and colours; no extra tile or TV illustration.
+            CatalogArtwork(url: artwork, symbol: model.ready ? (platform.name == "VIDAA Home" || model.sourceName == "Home" ? "house" : platform.symbol) : "wifi.slash", symbolSize: 17, symbolColor: .secondary)
+                .frame(width: 24, height: 24).clipShape(.rect(cornerRadius: 5))
+                .accessibilityHidden(true)
+            Text(model.ready ? platform.name : "Connect your TV")
+                .font(.system(size: 12, weight: .medium)).lineLimit(1)
+        }.frame(maxWidth: .infinity).frame(height: 26)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(model.ready ? "Active on TV: \(platform.name)" : "TV not connected")
+    }
+
     private var directionalPad: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
+            Circle()
                 .fill(reduceTransparency ? Color(nsColor: .controlBackgroundColor) : Color.clear)
-                .glassEffect(reduceTransparency ? .identity : .regular, in: .rect(cornerRadius: 32))
-                .overlay(RoundedRectangle(cornerRadius: 32).strokeBorder(Color.primary.opacity(contrast == .increased ? 0.5 : 0.06), lineWidth: 1))
-            padDirection("chevron.up", title: "Up", key: "UP", width: 100, height: 42).offset(y: -63)
-            padDirection("chevron.down", title: "Down", key: "DOWN", width: 100, height: 42).offset(y: 63)
-            padDirection("chevron.left", title: "Left", key: "LEFT", width: 52, height: 82).offset(x: -86)
-            padDirection("chevron.right", title: "Right", key: "RIGHT", width: 52, height: 82).offset(x: 86)
+                .glassEffect(reduceTransparency ? .identity : .regular, in: .circle)
+                .overlay(Circle().strokeBorder(Color.primary.opacity(contrast == .increased ? 0.5 : 0.10), lineWidth: 1))
+            padDirection("chevron.up", title: "Up", key: "UP", angle: -90)
+            padDirection("chevron.right", title: "Right", key: "RIGHT", angle: 0)
+            padDirection("chevron.down", title: "Down", key: "DOWN", angle: 90)
+            padDirection("chevron.left", title: "Left", key: "LEFT", angle: 180)
             Button { model.key("OK", label: "Select") } label: {
-                Text("OK").font(.system(size: 14, weight: .semibold)).frame(width: 64, height: 64)
+                Text("OK").font(.system(size: 15, weight: .semibold, design: .rounded)).frame(width: 78, height: 78)
             }.buttonStyle(.glass).buttonBorderShape(.circle)
                 .buttonCaption("Select").accessibilityLabel("Select")
-        }.frame(width: 248, height: 182).disabled(!model.ready).opacity(model.ready ? 1 : 0.5)
+        }.frame(width: 184, height: 184).disabled(!model.ready).opacity(model.ready ? 1 : 0.5)
     }
-    private func padDirection(_ symbol: String, title: String, key: String, width: CGFloat, height: CGFloat) -> some View {
-        Button { model.key(key, label: title) } label: {
-            Image(systemName: symbol).font(.system(size: 15, weight: .medium)).foregroundStyle(.secondary)
-                .frame(width: width, height: height).contentShape(.rect(cornerRadius: 15))
-        }.buttonStyle(RemotePressStyle()).buttonCaption(title).accessibilityLabel(title)
+    private func padDirection(_ symbol: String, title: String, key: String, angle: Double) -> some View {
+        let sector = ClickpadSector(angle: angle)
+        return Button { model.key(key, label: title) } label: {
+            sector.fill(.clear)
+                .overlay {
+                    Image(systemName: symbol).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+                        .offset(x: cos(angle * .pi / 180) * 70, y: sin(angle * .pi / 180) * 70)
+                }.contentShape(sector)
+        }.buttonStyle(ClickpadPressStyle(sector: sector)).buttonCaption(title).accessibilityLabel(title)
     }
     private func control(_ symbol: String, title: String, key: String, size: CGFloat = 44) -> some View {
         Button { model.key(key, label: title) } label: {
@@ -132,6 +145,31 @@ struct RemoteControlView: View {
                 }
             }
         }.padding(20).frame(width: 220)
+    }
+}
+
+/// Four non-overlapping ring targets, with a separate centre Select button.
+private struct ClickpadSector: Shape {
+    let angle: Double
+    func path(in rect: CGRect) -> Path {
+        let centre = CGPoint(x: rect.midX, y: rect.midY)
+        let outer = min(rect.width, rect.height) / 2
+        let inner = outer * 0.49
+        let start = Angle.degrees(angle - 45), end = Angle.degrees(angle + 45)
+        var path = Path()
+        path.addArc(center: centre, radius: outer, startAngle: start, endAngle: end, clockwise: false)
+        path.addArc(center: centre, radius: inner, startAngle: end, endAngle: start, clockwise: true)
+        path.closeSubpath()
+        return path
+    }
+}
+private struct ClickpadPressStyle: ButtonStyle {
+    let sector: ClickpadSector
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(sector.fill(Color.primary.opacity(configuration.isPressed ? 0.13 : 0)))
+            .animation(reduceMotion ? nil : .smooth(duration: 0.15), value: configuration.isPressed)
     }
 }
 private struct RemotePressStyle: ButtonStyle {

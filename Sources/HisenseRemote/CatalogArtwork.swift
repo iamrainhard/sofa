@@ -50,11 +50,13 @@ private final class ArtworkRedirectPolicy: NSObject, URLSessionTaskDelegate {
 struct CatalogArtwork: View {
     let url: URL?
     var symbol = "app.dashed"
+    var symbolSize: CGFloat = 29
+    var symbolColor: Color = .white.opacity(0.8)
     @ObservedObject private var cache = ArtworkCache.shared
     var body: some View {
         Group {
             if let image = cache.image(for: url) { Image(nsImage: image).resizable().scaledToFit() }
-            else { Image(systemName: symbol).font(.system(size: 29, weight: .light)).foregroundStyle(.white.opacity(0.8)) }
+            else { Image(systemName: symbol).font(.system(size: symbolSize, weight: .light)).foregroundStyle(symbolColor) }
         }.task(id: url) { await cache.load(url) }
     }
 }

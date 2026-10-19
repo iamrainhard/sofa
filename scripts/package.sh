@@ -10,5 +10,12 @@ VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Co
 mkdir -p dist
 ZIP="dist/Sofa-${VERSION}-arm64.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+# Validate the actual unzipped download, not only the pre-package app.
+VERIFY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/sofa-package.XXXXXX")
+trap 'rm -rf "$VERIFY_DIR"' EXIT
+ditto -x -k "$ZIP" "$VERIFY_DIR"
+codesign --verify --deep --strict "$VERIFY_DIR/Sofa.app"
+xcrun stapler validate "$VERIFY_DIR/Sofa.app"
+spctl --assess --type execute --verbose=2 "$VERIFY_DIR/Sofa.app"
 shasum -a 256 "$ZIP" > "$ZIP.sha256"
 echo "$ZIP"

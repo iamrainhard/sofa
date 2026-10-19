@@ -26,7 +26,7 @@ Use an Apple silicon Mac with an active Apple Developer membership, a Developer 
    xcodebuild -exportNotarizedApp -archivePath build/Sofa.xcarchive -exportPath build/notarized
    ```
 
-6. Run `bash scripts/package.sh`. This refuses to package an app without a valid staple and successful Gatekeeper assessment. If Xcode exports a differently named folder, pass its app path to the script.
+6. Run `bash scripts/package.sh`. This refuses to package an app without a valid staple and successful Gatekeeper assessment, then extracts the ZIP and repeats those checks on the actual download. If Xcode exports a differently named folder, pass its app path to the script.
 7. Commit reviewed source, tag the release, then upload the ZIP and SHA-256 file to a GitHub **prerelease** with compatibility limits and actual validation evidence.
 
 An alternative is `xcrun notarytool submit` using a private Keychain profile configured interactively by the account owner. Do not put Apple passwords, signing certificates with private keys, API keys or tokens in command history, issue reports, CI logs or repository secrets without separately agreeing on a CI signing setup.
@@ -35,4 +35,4 @@ The workflow in this repository builds and tests source with an ad-hoc signature
 
 ## Isolated UI previews
 
-Quit the existing preview, then run `bash scripts/preview.sh welcome` (or `pair`, `success`, `remote`). Open `build/Sofa Preview.app` in Finder. It uses a separate bundle/preferences identity and disables the TV bridge. These are simulated states, not proof of successful device commands. Never distribute this preview bundle as the real app.
+Quit the existing preview, then run `bash scripts/preview.sh welcome` (or `pair`, `success`, `remote`, `network`, `trust`, `discovery`). Open `build/Sofa Preview.app` in Finder. It uses a separate bundle/preferences identity and disables the TV bridge. Navigation actions report their labels in the preview footer so target wiring can be checked without controlling a TV. These are simulated states, not proof of successful device commands. Never distribute this preview bundle as the real app.
