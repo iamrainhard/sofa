@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Use an entirely stroked couch icon in the menu bar, with rounded outlines and no filled cushions or base (build 11).
+- Match the menu-bar couch to the website’s exact stroke-only outline, with rounded joins and no filled areas (build 12).
 
 ## 0.4.0-beta.1 — early preview
 
