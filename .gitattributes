@@ -1,0 +1,3 @@
+# Preserve upstream license and shared certificate bytes exactly.
+Resources/certs/* whitespace=-blank-at-eol
+Resources/RuntimeLicenses/* whitespace=-blank-at-eol

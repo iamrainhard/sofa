@@ -1,0 +1,61 @@
+{
+  "fill": {
+    "automatic-gradient": "extended-srgb:0.02500,0.28000,0.34000,1.00000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "remote.svg",
+          "name": "remote"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.22
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "seat.svg",
+          "name": "seat"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.22
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "back.svg",
+          "name": "back"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.22
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

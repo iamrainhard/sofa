@@ -1,0 +1,26 @@
+name: Build and checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Check protocol and Swift state handling
+        run: bash scripts/check.sh
+      - name: Build standalone app
+        run: bash build.sh
+      - name: Verify bundled helper and signature
+        run: |
+          printf '{"action":"disconnect"}\n' | build/Sofa.app/Contents/Helpers/SofaBridge.app/Contents/MacOS/SofaBridge
+          codesign --verify --deep --strict build/Sofa.app
