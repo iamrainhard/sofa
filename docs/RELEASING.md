@@ -36,3 +36,13 @@ The workflow in this repository builds and tests source with an ad-hoc signature
 ## Isolated UI previews
 
 Quit the existing preview, then run `bash scripts/preview.sh welcome` (or `pair`, `success`, `remote`, `network`, `trust`, `discovery`). Open `build/Sofa Preview.app` in Finder. It uses a separate bundle/preferences identity and disables the TV bridge. Navigation actions report their labels in the preview footer so target wiring can be checked without controlling a TV. These are simulated states, not proof of successful device commands. Never distribute this preview bundle as the real app.
+
+## Explicit early previews
+
+When an early release before notarization is intentionally authorized, use `bash scripts/package-preview.sh build/Sofa.app`. This separate path verifies Developer ID signing, packages installation guidance, and verifies the extracted app. Its filename includes the version, build, architecture and `preview`. Publish only as a GitHub prerelease with the pending notarization status visible beside download instructions. It does not establish Gatekeeper acceptance; `scripts/package.sh` keeps its stricter notarization requirements.
+
+When Apple accepts the submitted archive, export, staple and verify it with the normal packaging path, upload the newly named notarized artifact and checksum, and update release/site copy. Do not silently replace a preview ZIP while retaining its old checksum.
+
+## Website
+
+Static source is in `website/`. `bash scripts/build-site.sh` stages it with the approved screenshots in `build/site/`. The Publish website workflow deploys that folder to GitHub Pages. Keep version, download URL, compatibility and notarization status aligned with the release notes.

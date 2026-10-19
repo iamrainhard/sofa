@@ -16,10 +16,12 @@ Sofa brings your TV’s remote, apps, inputs and volume into a small native macO
 
 ## Download
 
-Get the latest beta from [GitHub Releases](https://github.com/iamrainhard/sofa/releases). Release notes identify signing and notarization status; source availability alone does not mean a notarized download is available.
+Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.4.0-beta.1).
+
+**Build 10 is an early, Developer ID-signed preview. Apple notarization is pending.** The ZIP includes installation instructions and the release includes a SHA-256 checksum. macOS may block the first launch. You can wait for notarization, or follow [Apple’s guidance](https://support.apple.com/en-us/102445) to use **System Settings → Privacy & Security → Open Anyway** for this beta. Do not disable Gatekeeper globally.
 
 1. Download and unzip the ZIP, then move **Sofa.app** into **Applications**.
-2. Open Sofa. Its TV icon appears in your menu bar; it has no persistent Dock window.
+2. Open Sofa. Its couch icon appears in your menu bar; it has no persistent Dock window.
 3. Keep your Mac and TV on the same home network. Allow Local Network access when macOS asks.
 4. Choose **Set up my TV**. Discover a nearby compatible TV or enter the private IPv4 address shown in the TV’s network settings.
 5. Sofa detects the connection platform; you can also choose it manually. Verify the address and trust the TV’s certificate. VIDAA uses a numeric pairing code; Google / Android TV displays a six-character hexadecimal code (digits and A–F).
