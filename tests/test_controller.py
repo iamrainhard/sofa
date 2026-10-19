@@ -15,7 +15,7 @@ class ControllerTests(unittest.TestCase):
             adapter.emit = emit
             self.instances.append(adapter)
             return adapter
-        self.controller = Controller(self.events.append, factory, factory)
+        self.controller = Controller(self.events.append, factory, factory, factory)
 
     def test_vidaa_probe_and_original_command_preserved(self):
         command = dict(action='connect', session='v1', platform='vidaa', host='192.168.1.9', saved={'accesstoken': 'fixture'})
@@ -46,3 +46,23 @@ class ControllerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.controller.command(dict(action='connect', session='x', platform='roku', host='192.168.1.9'))
         self.assertEqual(self.instances, [])
+
+    def test_three_platforms_keep_commands_and_credentials_isolated(self):
+        for platform in ('vidaa', 'androidtv', 'samsung', 'vidaa'):
+            previous = self.instances[-1] if self.instances else None
+            session = f'{platform}-{len(self.instances)}'
+            command = dict(action='connect', session=session, platform=platform, host='192.168.1.9', saved={'fixture': platform})
+            self.controller.command(command)
+            active = self.instances[-1]
+            self.assertEqual(active.command.call_args.args[0], command)
+            if previous:
+                previous.close.assert_called_once()
+                previous.emit(dict(event='credentials', value={'token': 'stale'}))
+            self.assertFalse(any(e.get('value') == {'token': 'stale'} for e in self.events))
+            active.emit(dict(event='credentials', value={'fixture': platform}))
+            self.assertEqual(self.events[-1]['platform'], platform)
+            self.assertEqual(self.events[-1]['session'], session)
+            active.command.reset_mock()
+            self.controller.command(dict(action='key', key='HOME', session=session))
+            active.command.assert_called_once()
+        self.controller.close()

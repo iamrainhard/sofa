@@ -153,7 +153,7 @@ struct RemoteView: View {
                 if model.activePlatform.hasInputCatalog { CatalogSwitcher(selection: $selectedTab) }
                 else {
                     HStack {
-                        Text("App shortcuts").font(.system(size: 13, weight: .semibold))
+                        Text(model.activePlatform == .samsung ? "TV apps" : "App shortcuts").font(.system(size: 13, weight: .semibold))
                         Spacer()
                         Button("Input menu", systemImage: "cable.connector", action: model.showInputPicker).buttonStyle(.sofaCapsule()).font(.caption)
                     }.padding(.horizontal, 26).frame(height: 40)
@@ -178,9 +178,9 @@ struct RemoteView: View {
                 }
                 .buttonStyle(.sofaCircle(tint: model.muted ? .accentColor : nil))
                 .disabled(!model.canStepVolume)
-                .buttonCaption(model.muted ? "Unmute" : "Mute")
-                .accessibilityLabel(model.muted ? "Unmute TV" : "Mute TV")
-                .accessibilityValue(model.muted ? "Muted" : "Sound on")
+                .buttonCaption(model.muteActionTitle)
+                .accessibilityLabel(model.muteActionTitle)
+                .accessibilityValue(model.muteStateKnown ? (model.muted ? "Muted" : "Sound on") : "State unavailable")
             }
             HStack(spacing: 12) {
                 circleButton("minus", label: "Volume down", enabled: model.canStepVolume, size: 28) { model.stepVolume(-1) }
@@ -208,8 +208,14 @@ struct RemoteView: View {
             if model.sources.isEmpty { emptyContent("No inputs received", subtitle: "Refresh to ask your TV again.") }
             else { CatalogShelf(items: model.sources, active: model.activeDestination, pending: model.pendingDestination, feedback: model.destinationFeedback, inputs: true, action: model.selectSource, scrollID: $inputScrollID) }
         } else {
-            if model.apps.isEmpty { emptyContent("No apps received", subtitle: "Only apps reported by your TV appear here.") }
-            else { CatalogShelf(items: model.apps, active: model.activeDestination, pending: model.pendingDestination, feedback: model.destinationFeedback, shortcuts: !model.activePlatform.hasInstalledAppCatalog, action: model.launch, scrollID: $appScrollID) }
+            if model.apps.isEmpty && model.activePlatform == .samsung {
+                VStack(spacing: 9) {
+                    Text("Open apps from your TV’s Home").font(.system(size: 12, weight: .semibold))
+                    Text("Some Samsung TVs don’t share an app list.").font(.system(size: 11)).foregroundStyle(.secondary)
+                    Button("Open Home", systemImage: "house") { model.key("HOME", label: "Home") }.buttonStyle(.sofaCapsule())
+                }
+            } else if model.apps.isEmpty { emptyContent("No apps received", subtitle: "Only apps reported by your TV appear here.") }
+            else { CatalogShelf(items: model.apps, active: model.activeDestination, pending: model.pendingDestination, feedback: model.destinationFeedback, shortcuts: !model.hasInstalledAppCatalog, action: model.launch, scrollID: $appScrollID) }
         }
     }
     private var fullRemote: some View {

@@ -53,9 +53,21 @@ The TV illustration shows app/input identity, not screen mirroring. Sofa control
 | Google TV / Android TV, any brand | Experimental in 0.4 | Requires Android TV Remote Service v2. On-screen PIN pairing, navigation, playback keys, volume controls, current app/power/volume reports where supplied, app shortcuts and input-menu key. |
 | Roku, Fire TV, Xumo | Not implemented | Selecting Android TV does not make these devices compatible. |
 
-Android support is platform-based, not restricted to Hisense. A TV must expose Android TV Remote Service; generic Android boxes without that service are not supported. No root, ADB or developer mode is needed. Discovery uses Bonjour and VIDAA SSDP, with private IPv4/manual setup as a fallback.
+Android support is platform-based, not restricted to Hisense. A TV must expose Android TV Remote Service; generic Android boxes without that service are not supported. No root, ADB or developer mode is needed. Discovery uses Bonjour and VIDAA SSDP (plus Samsung SSDP in source build 13), with private IPv4/manual setup as a fallback.
 
 Android app tiles are **shortcuts, not a detected installed-app list**. Apps must already be installed and handle the link. Android keeps the glass slider when volume feedback is available: Sofa sends one relative key at a time, follows the latest drag target, and settles to the nearest native volume step. If feedback stalls, it stops and falls back to −/+ until reconnect. It may respond more slowly than VIDAA’s direct setter. Input, channel, mute and wake behavior depend on the television and audio setup. If a manufacturer keyboard behaves poorly, disable **Keyboard and current app updates** in Settings and reconnect. No voice recording is implemented.
+
+## Experimental Samsung Tizen (source build 13)
+
+The current source adds Samsung Tizen support in **0.5.0-beta.1 build 13**. The downloadable build 12 above does **not** include it yet. No physical Samsung TV has been tested.
+
+- Find a Samsung TV on the local network, or select **Samsung Tizen · Experimental** and enter its private IPv4 address. This adapter requires the secure Tizen WebSocket service on TCP 8002; older Orsay and plaintext-only models are not supported.
+- Verify the TV address and trust its certificate. Select **Allow** on the television using its physical remote. No PIN, SmartThings account, root or developer mode is required. Sofa saves the pairing token in its own Keychain namespace for reconnects. Denied or expired requests have a retry path.
+- Navigation, playback, volume keys, mute, numeric/channel keys and the input-menu key use Samsung remote commands. App support varies; native media keys may be ignored by individual apps.
+- The glass **volume slider appears only after the TV advertises GetVolume/SetVolume on a compatible 0–100 UPnP service and returns a valid reading**. Sofa confirms changes with readback. If this fails, −/+ remains available; Refresh checks for the slider again. Soundbars and external receivers may behave differently.
+- Installed app tiles appear only when the TV supplies its catalog. Otherwise use **Open Home**. Active-app reporting, direct input lists and network wake are not implemented. App-launch requests are not presented as confirmed launches.
+
+The existing VIDAA and Android wire adapters remain unchanged. Automated tests cover all three routes, pairing isolation, local TLS/WebSocket approval and reconnect, SOAP volume readback, fallback states and native UI state. Hardware testing on Samsung is still required before broader compatibility claims.
 
 ## Privacy
 

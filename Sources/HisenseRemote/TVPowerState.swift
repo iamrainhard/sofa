@@ -14,7 +14,7 @@ enum TVPowerState: String {
 
     static func reported(by state: [String: Any]) -> TVPowerState {
         let kind = (state["statetype"] as? String ?? "").lowercased()
-        if kind == "android_state" { return (state["power"] as? Bool).map { $0 ? .on : .standby } ?? .unknown }
+        if kind == "android_state" || kind == "samsung_state" { return (state["power"] as? Bool).map { $0 ? .on : .standby } ?? .unknown }
         if kind == "fake_sleep_0" { return .standby }
         // Only recognized active-screen states are evidence that the panel is on.
         if ["remote_launcher", "app", "source", "livetv", "tv", "sourceswitch", "remote_setting"].contains(kind) { return .on }

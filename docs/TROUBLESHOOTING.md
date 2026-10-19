@@ -26,6 +26,14 @@ The app shelf contains named shortcuts, not installation detection. A shortcut m
 
 If a TV's on-screen keyboard disappears in favor of a mobile keyboard prompt, turn off **Settings → General → Keyboard and current app updates** and reconnect. This also disables current-app reporting. Playback buttons do not imply that Sofa can read playback state.
 
+## Samsung Tizen setup (source build 13)
+
+Samsung is experimental and has not yet been tested on physical hardware. The current public build 12 does not include this adapter. In a source build, choose **Samsung Tizen · Experimental**, keep the TV awake, and select **Allow** on its approval prompt. Saved tokens reconnect without entering a code when the firmware permits. If no prompt appears or permission was denied, check **External Device Manager → Device Connection Manager** and remove Sofa from blocked devices, then choose **Try again**. Menu names vary with firmware. **Pair again** resets Sofa's Samsung token only.
+
+The TV must expose secure remote control on TCP 8002. Older Orsay models and TVs with only plaintext TCP 8001 remote control are outside this beta. SSDP discovery uses UDP 1900; optional device information uses HTTP TCP 8001, and the optional volume service uses the same TV's advertised UPnP port. No router port-forwarding is needed.
+
+The slider requires a successful volume reading and advertised GetVolume/SetVolume actions with a compatible 0–100 range. When unavailable, use −/+ and mute; **Refresh TV** checks again. An unknown mute state is labelled **Toggle mute**. App catalogs are firmware-dependent; **Open Home** remains available if none is returned. Sofa does not claim an app has opened without confirmation, and this adapter does not report the active app or wake the TV from standby. Use the physical remote to wake it.
+
 ## TV is off, controls unavailable
 
 Wake it with the physical remote. Network wake depends on firmware and network standby settings; Sofa does not promise Wake-on-LAN. Unknown means the app has no confirmed power state.
@@ -36,7 +44,7 @@ The TV may acknowledge commands slowly. Sofa combines volume changes and awaits 
 
 ## Sofa is missing
 
-Look for the TV icon in the menu bar, including hidden icons managed by other utilities. Reopen Sofa from Applications to show its panel. There is no normal Dock window. Settings → General controls optional login startup.
+Look for the couch icon in the menu bar, including hidden icons managed by other utilities. Reopen Sofa from Applications to show its panel. There is no normal Dock window. Settings → General controls optional login startup.
 
 ## Reporting a bug
 

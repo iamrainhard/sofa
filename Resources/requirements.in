@@ -1,2 +1,5 @@
 # Android TV Remote Service v2; no ADB or developer-mode dependency.
 androidtvremote2==0.3.2
+
+# Samsung Tizen secure WebSocket transport.
+websocket-client==1.9.2

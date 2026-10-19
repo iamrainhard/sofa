@@ -22,7 +22,7 @@ struct OnboardingView: View {
                     benefit("lock.shield", "At home on your network", "Pair directly. No Sofa account needed.")
                 }.padding(.vertical, 12)
                 Button("Set up my TV") { started = true }.buttonStyle(.sofaCapsule(prominent: true)).controlSize(.large)
-                Text("Hisense VIDAA · Google TV · Android TV\nGoogle / Android TV support is experimental.")
+                Text("Hisense VIDAA · Google / Android TV · Samsung Tizen\nGoogle / Android TV and Samsung support are experimental.")
                     .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             } else if model.ready {
                 VStack(spacing: 9) {
@@ -31,7 +31,7 @@ struct OnboardingView: View {
                     Text("Your Mac is paired with your TV.").foregroundStyle(.secondary)
                 }
                 TextField("Give your TV a name (optional)", text: $model.nickname).textFieldStyle(.roundedBorder)
-                Text("You’ll find Sofa under the TV icon in your menu bar. You can change startup preferences in Settings.")
+                Text("You’ll find Sofa under the couch icon in your menu bar. You can change startup preferences in Settings.")
                     .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 if let warning = model.credentialWarning { Text(warning).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true) }
                 Button("Open Sofa") { model.completeSetup() }.buttonStyle(.sofaCapsule(prominent: true)).controlSize(.large)
@@ -72,6 +72,20 @@ struct ConnectionSetupView: View {
                 }.font(.caption)
                 Button("Trust this TV") { model.trustTV() }.buttonStyle(.sofaCapsule(prominent: true))
                 Button("Choose another TV") { model.disconnect() }.buttonStyle(.plain)
+            } else if model.status == "pairing" && model.activePlatform.usesTVApproval {
+                Image(systemName: "tv.badge.wifi").font(.system(size: 38, weight: .light)).foregroundStyle(.tint)
+                Text("Allow Sofa on your TV").font(.title2.bold())
+                Text(model.pairingPrompt).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                if model.waitingForTVApproval {
+                    ProgressView().controlSize(.small)
+                    Text("Waiting for your TV’s approval…").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Button("Try again") { model.repair() }.buttonStyle(.sofaCapsule(prominent: true))
+                }
+                Text("If no prompt appears, check your TV’s External Device Manager → Device Connection Manager. Menu names vary by model.")
+                    .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                Text("Experimental · Tizen TVs with secure network remote control.").font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                Button("Choose another TV") { model.disconnect() }.buttonStyle(.plain)
             } else if model.status == "pairing" {
                 Text(model.platformTitle).font(.caption).foregroundStyle(.secondary)
                 Text("Pair your Mac").font(.title2.bold())
@@ -107,14 +121,14 @@ struct ConnectionSetupView: View {
                     Picker("TV platform", selection: $model.selectedPlatform) {
                         ForEach(TVConnectionPlatform.allCases) { platform in Text(platform.title).tag(platform) }
                     }.disabled(model.isBusy)
-                    Text(model.selectedPlatform == .androidtv ? "Experimental · Uses Android TV Remote Service. No developer mode needed." : "Find the address in your TV’s Settings → Network.").font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text(model.selectedPlatform == .samsung ? "Experimental · Approve Sofa on the TV. Secure Tizen remote service required; older Samsung models are not supported." : model.selectedPlatform == .androidtv ? "Experimental · Uses Android TV Remote Service. No developer mode needed." : "Find the address in your TV’s Settings → Network.").font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 Button { model.connect() } label: {
                     HStack { if model.isBusy { ProgressView().controlSize(.small) }; Text(model.isBusy ? "Connecting…" : "Connect") }
                 }.buttonStyle(.sofaCapsule(prominent: true)).disabled(model.host.isEmpty || model.isBusy)
                 if model.isBusy { Button("Cancel", action: model.disconnect).buttonStyle(.plain) }
                 if model.pairingNeedsAttention {
-                    Button("Pair again with a new TV code") { model.repair() }.buttonStyle(.sofaCapsule())
+                    Button(model.activePlatform.usesTVApproval ? "Pair again on TV" : "Pair again with a new TV code") { model.repair() }.buttonStyle(.sofaCapsule())
                 }
                 Button("Open Privacy & Security settings") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork") { NSWorkspace.shared.open(url) }
@@ -175,6 +189,6 @@ struct SofaSettingsView: View {
         }.padding(26).frame(width: 410, height: model.ready ? 520 : 600)
         .confirmationDialog("Forget this TV?", isPresented: $forget, titleVisibility: .visible) {
             Button("Forget TV", role: .destructive) { model.forgetTV() }
-        } message: { Text("Removes this Mac’s saved pairing and TV settings. You’ll need a new code from the TV to reconnect.") }
+        } message: { Text("Removes this Mac’s saved pairing and TV settings. You’ll need to approve pairing on the TV again.") }
     }
 }

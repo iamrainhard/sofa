@@ -30,10 +30,17 @@ final class RemoteModel: ObservableObject {
         if previewState == nil { defaults.set(savedSeekingModes, forKey: "appSeekingModes") }
     }
     var platformTitle: String { activePlatform.title }
-    var canStepVolume: Bool { ready && (hasVolume || activePlatform == .androidtv) }
+    @Published private var samsungAbsoluteVolume = false
+    @Published private var samsungInstalledApps = false
+    @Published private(set) var waitingForTVApproval = false
+    @Published private var samsungMuteKnown = false
+    var muteStateKnown: Bool { activePlatform != .samsung || samsungMuteKnown }
+    var muteActionTitle: String { muteStateKnown ? (muted ? "Unmute" : "Mute") : "Toggle mute" }
+    var hasInstalledAppCatalog: Bool { activePlatform.hasInstalledAppCatalog || (activePlatform == .samsung && samsungInstalledApps) }
+    var canStepVolume: Bool { ready && (hasVolume || activePlatform.supportsVolumeKeys) }
     @Published private var androidSliderAvailable = true
-    var canSetVolume: Bool { ready && hasVolume && (activePlatform.supportsAbsoluteVolume || (activePlatform == .androidtv && androidSliderAvailable)) }
-    var pairingPrompt: String { activePlatform == .androidtv ? "Enter the six-character code shown on your TV. Letters A–F are normal." : "Show a pairing code on your TV, then enter it here." }
+    var canSetVolume: Bool { ready && hasVolume && (activePlatform.supportsAbsoluteVolume || (activePlatform == .samsung && samsungAbsoluteVolume) || (activePlatform == .androidtv && androidSliderAvailable)) }
+    var pairingPrompt: String { activePlatform.usesTVApproval ? "Select Allow on your Samsung TV using its remote. Sofa will connect automatically." : activePlatform == .androidtv ? "Enter the six-character code shown on your TV. Letters A–F are normal." : "Show a pairing code on your TV, then enter it here." }
     var validPIN: Bool { activePlatform.validPairingCode(pin) }
     private var sessionID = UUID().uuidString
     private var discoveryID = UUID().uuidString
@@ -96,8 +103,10 @@ final class RemoteModel: ObservableObject {
     @Published var status = "offline" {
         didSet {
             if status != "ready" {
-                hasVolume = false
+                hasVolume = false; muted = false
+                if status != "pairing" { waitingForTVApproval = false }
                 androidSliderAvailable = true
+                samsungAbsoluteVolume = false; samsungInstalledApps = false; samsungMuteKnown = false
                 powerState = .unknown; powerChanging = false
                 activeDestination = nil; pendingDestination = nil; destinationFeedback = nil
                 destinationTimeout?.cancel(); destinationRefresh?.cancel()
@@ -212,6 +221,17 @@ final class RemoteModel: ObservableObject {
             if previewState == "remote" || previewState == "success" {
                 status = "ready"; hasVolume = true; sourceName = "Home"; volumeInteraction.report(24)
             }
+            if previewState.hasPrefix("samsung") {
+                activePlatform = .samsung; selectedPlatform = .samsung
+                modelName = "Samsung · Tizen (experimental)"; deviceName = "Samsung TV"
+                if previewState == "samsung-pair" { status = "pairing"; waitingForTVApproval = true }
+                if previewState == "samsung-denied" { status = "pairing"; waitingForTVApproval = false; error = "Approval was denied. Allow Sofa in your TV’s Device Connection Manager, then try again." }
+                if previewState == "samsung-home" || previewState == "samsung-remote" {
+                    onboardingComplete = true; status = "ready"; sourceName = "Samsung TV"
+                    hasVolume = true; samsungAbsoluteVolume = true; samsungMuteKnown = true; volumeInteraction.report(36)
+                    viewMode = previewState == "samsung-remote" ? 1 : 0
+                }
+            }
             if previewState.hasPrefix("android") {
                 activePlatform = .androidtv; selectedPlatform = .androidtv
                 if previewState == "android-pair" { status = "pairing"; pendingPair = true }
@@ -306,9 +326,9 @@ final class RemoteModel: ObservableObject {
         guard process != nil else { return }
         send(["action": "disconnect"])
         host = candidate; localNetworkNeedsAttention = false; pairingNeedsAttention = false; credentialWarning = nil
-        pendingPair = false; pin = ""; apps = []; sources = []; sourceName = "Connected TV"
+        pendingPair = false; waitingForTVApproval = false; pin = ""; apps = []; sources = []; sourceName = "Connected TV"
         error = nil; status = "connecting"; isBusy = true
-        let candidates: [TVConnectionPlatform] = selectedPlatform == .automatic ? [.androidtv, .vidaa] : [selectedPlatform]
+        let candidates: [TVConnectionPlatform] = selectedPlatform == .automatic ? [.androidtv, .vidaa, .samsung] : [selectedPlatform]
         checkNetwork(candidate, candidates: candidates, session: sessionID)
     }
     private func checkNetwork(_ host: String, candidates: [TVConnectionPlatform], session: String) {
@@ -353,6 +373,8 @@ final class RemoteModel: ObservableObject {
         host = host.trimmingCharacters(in: .whitespacesAndNewlines)
         error = nil; fingerprint = ""; isBusy = true; status = "connecting"
         hasVolume = false; apps = []; sources = []; connectedHost = host
+        modelName = activePlatform == .samsung ? "Samsung · Tizen (experimental)" : activePlatform == .androidtv ? "Google / Android TV" : "Hisense · VIDAA"
+        sourceName = activePlatform == .samsung ? "Samsung TV" : "Connected TV"
         defaults.set(host, forKey: "tvHost")
         defaults.set(activePlatform.rawValue, forKey: "tvConnectionPlatform")
         selectedPlatform = activePlatform
@@ -374,6 +396,7 @@ final class RemoteModel: ObservableObject {
         connect()
     }
     func pair() {
+        if activePlatform.usesTVApproval { repair(); return }
         error = nil; pendingPair = true; pin = ""; isBusy = true
         send(["action": "pair"])
     }
@@ -392,7 +415,7 @@ final class RemoteModel: ObservableObject {
         networkCheck?.cancel(); networkCheck = nil
         reconnectWork?.cancel()
         send(["action": "disconnect"]); status = "offline"; hasVolume = false; isBusy = false
-        pendingPair = false; pin = ""
+        pendingPair = false; waitingForTVApproval = false; pin = ""
         apps = []; sources = []; sourceName = "Your favourite screen."
     }
     func refresh() { error = nil; send(["action": "refresh"]) }
@@ -429,6 +452,7 @@ final class RemoteModel: ObservableObject {
             guard let self, self.volumeInteraction.inFlight?.id == request.id else { return }
             self.volumeInteraction.cancel()
             if self.activePlatform == .androidtv { self.send(["action": "cancel_volume"]); self.androidSliderAvailable = false }
+            if self.activePlatform == .samsung { self.samsungAbsoluteVolume = false; self.hasVolume = false; self.samsungMuteKnown = false }
             self.error = "Volume update wasn’t confirmed. Refresh to read the TV."
         }
         volumeTimeout = timeout
@@ -461,7 +485,7 @@ final class RemoteModel: ObservableObject {
     }
     func stepVolume(_ amount: Int) {
         guard canStepVolume else { return }
-        if activePlatform.supportsAbsoluteVolume { setVolume(volume + Double(amount)) }
+        if activePlatform.supportsAbsoluteVolume || (activePlatform == .samsung && canSetVolume) { setVolume(volume + Double(amount)) }
         else {
             volumeInteraction.cancel(); volumeTimeout?.cancel()
             key(amount > 0 ? "VOLUMEUP" : "VOLUMEDOWN", label: amount > 0 ? "Volume up" : "Volume down")
@@ -488,7 +512,7 @@ final class RemoteModel: ObservableObject {
         let timeout = DispatchWorkItem { [weak self] in
             guard let self, self.pendingDestination?.key == item.destination.key else { return }
             self.pendingDestination = nil
-            self.destinationFeedback = self.activePlatform == .androidtv ? "Not confirmed. Install this app on your TV first." : "Couldn’t confirm \(item.name). Try again."
+            self.destinationFeedback = self.activePlatform == .samsung ? "Launch requested. Check your TV; this model may not report the active app." : self.activePlatform == .androidtv ? "Not confirmed. Install this app on your TV first." : "Couldn’t confirm \(item.name). Try again."
         }
         destinationTimeout = timeout
         DispatchQueue.main.asyncAfter(deadline: .now() + 12, execute: timeout)
@@ -502,11 +526,18 @@ final class RemoteModel: ObservableObject {
             guard object["discovery"] as? String == discoveryID, discovering else { return }
             for value in object["devices"] as? [[String: String]] ?? [] {
                 guard let host = value["host"] else { continue }
-                addDiscovered(DiscoveredTV(host: host, name: value["name"] ?? "VIDAA TV", model: value["model"] ?? "", platform: .vidaa))
+                addDiscovered(DiscoveredTV(host: host, name: value["name"] ?? "VIDAA TV", model: value["model"] ?? "", platform: TVConnectionPlatform(rawValue: value["platform"] ?? "vidaa") ?? .vidaa))
             }
         case "device":
             if let name = object["name"] as? String, !name.isEmpty { deviceName = name }
             if let name = object["model"] as? String, !name.isEmpty { modelName = activePlatform == .vidaa ? "Hisense · \(name)" : name }
+        case "approval":
+            waitingForTVApproval = object["waiting"] as? Bool ?? false
+        case "capabilities":
+            if activePlatform == .samsung {
+                if let available = object["absolute_volume"] as? Bool { samsungAbsoluteVolume = available }
+                if let available = object["installed_apps"] as? Bool { samsungInstalledApps = available }
+            }
         case "volume":
             if let value = object["value"] as? Int {
                 if object["source"] as? String == "readback" || Date() >= ignoreVolumeBroadcastsUntil {
@@ -514,9 +545,15 @@ final class RemoteModel: ObservableObject {
                 }
                 hasVolume = true
             }
-            if let value = object["muted"] as? Bool { muted = value }
+            if activePlatform == .samsung, object["mute_known"] as? Bool == false { samsungMuteKnown = false; muted = false }
+            if let value = object["muted"] as? Bool { muted = value; samsungMuteKnown = true }
         case "volume_result": volumeCompleted(object)
         case "volume_control_unavailable":
+            if activePlatform == .samsung {
+                samsungAbsoluteVolume = false; hasVolume = false; samsungMuteKnown = false; muted = false
+                volumeInteraction.cancel(); volumeTimeout?.cancel()
+                error = "Volume feedback is unavailable. Use − / +, or Refresh to check the slider again."
+            }
             if activePlatform == .androidtv {
                 androidSliderAvailable = false; volumeInteraction.cancel(); volumeTimeout?.cancel()
                 error = "This TV isn’t confirming volume changes. Use − / +, or reconnect to try the slider again."
@@ -529,7 +566,7 @@ final class RemoteModel: ObservableObject {
             isBusy = status == "connecting"
             if status == "pairing" { settingsVisible = onboardingComplete; pendingPair = activePlatform == .androidtv }
             if ready {
-                pendingPair = false; pin = ""; error = credentialWarning; activity = "You’re in control"
+                pendingPair = false; waitingForTVApproval = false; pin = ""; error = credentialWarning; activity = "You’re in control"
 
             }
         case "trust":

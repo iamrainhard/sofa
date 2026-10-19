@@ -10,7 +10,7 @@ from bridge import Bridge, discover_devices
 
 
 class Controller:
-    def __init__(self, emit=None, vidaa_factory=Bridge, android_factory=None):
+    def __init__(self, emit=None, vidaa_factory=Bridge, android_factory=None, samsung_factory=None):
         self.emit = emit or (lambda value: print(json.dumps(value), flush=True))
         self.lock = threading.RLock()
         self.adapter = None
@@ -18,6 +18,7 @@ class Controller:
         self.platform = None
         self.vidaa_factory = vidaa_factory
         self.android_factory = android_factory
+        self.samsung_factory = samsung_factory
 
     def event(self, value, session):
         with self.lock:
@@ -43,6 +44,15 @@ class Controller:
                 with self.lock:
                     self.emit(dict(event='discovery', discovery=token, devices=devices))
             threading.Thread(target=discover, daemon=True).start()
+            def discover_samsung():
+                try:
+                    from samsung_network import discover_devices as samsung_discover
+                    devices = samsung_discover()
+                except Exception:
+                    devices = []
+                with self.lock:
+                    self.emit(dict(event='discovery', discovery=token, devices=devices))
+            threading.Thread(target=discover_samsung, daemon=True).start()
             return
         if action == 'disconnect':
             self.close()
@@ -51,7 +61,7 @@ class Controller:
             self.close()
             session = command.get('session')
             platform = command.get('platform', 'vidaa')
-            if not isinstance(session, str) or not session or platform not in ('vidaa', 'androidtv'):
+            if not isinstance(session, str) or not session or platform not in ('vidaa', 'androidtv', 'samsung'):
                 raise ValueError('Choose a supported TV platform.')
             self.session, self.platform = session, platform
             emit = lambda value: self.event(value, session)
@@ -62,6 +72,12 @@ class Controller:
                     self.adapter.command(dict(action='probe', host=command['host']))
                 except Exception:
                     pass  # A missing volume service must not prevent remote pairing.
+            elif platform == 'samsung':
+                factory = self.samsung_factory
+                if factory is None:
+                    from samsung_adapter import SamsungAdapter
+                    factory = SamsungAdapter
+                self.adapter = factory(emit)
             else:
                 factory = self.android_factory
                 if factory is None:

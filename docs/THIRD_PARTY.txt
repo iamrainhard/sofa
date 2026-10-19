@@ -46,3 +46,12 @@ aiofiles (Apache-2.0, including NOTICE), cryptography (Apache-2.0 OR BSD-3-Claus
 cffi (MIT-0), pycparser (BSD-3-Clause), protobuf (BSD-3-Clause).
 See RuntimeLicenses in the app bundle for the original full license texts.
 Google TV / Android TV are Google trademarks. No affiliation or endorsement.
+
+
+Experimental Samsung Tizen adapter (original Sofa implementation):
+Protocol research: https://github.com/xchwarze/samsung-tv-ws-api
+Compatibility reference: https://www.home-assistant.io/integrations/samsungtv/
+WebSocket transport: websocket-client 1.9.2 (Apache-2.0),
+https://github.com/websocket-client/websocket-client
+The original license is included under RuntimeLicenses/websocket-client-LICENSE.txt.
+Samsung and Tizen are trademarks of their respective owners. No affiliation or endorsement.
