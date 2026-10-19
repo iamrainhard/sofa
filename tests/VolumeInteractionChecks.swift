@@ -40,6 +40,17 @@ import Foundation
         precondition(state.displayed == 20)
         state.end()
         precondition(state.target == nil)
+        state.report(35); state.begin(); state.propose(100)
+        let obsolete = state.supersedeRequest()!
+        state.propose(53)
+        let newest = state.supersedeRequest()!
+        precondition(!state.complete(id: obsolete.id, actual: 100))
+        state.report(40)
+        precondition(state.displayed == 53, "Keep the thumb at the latest target during TV feedback")
+        state.complete(id: newest.id, actual: 55)
+        precondition(state.displayed == 53, "Quantization must not move a thumb under the pointer")
+        state.end(); state.finishRelativeEdit()
+        precondition(state.displayed == 55 && state.target == nil, "Settle once to the nearest native step after release")
         print("Volume interaction checks passed: drag, delayed readback, coalescing, release, stale completion, external change, stepping, cancellation, limits and TV clamping")
     }
 }

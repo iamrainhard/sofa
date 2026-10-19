@@ -40,6 +40,8 @@ struct TVPlatform {
                 name = "VIDAA Home"; artwork = "vidaa.png"; width = 126
                 background = Color(white: 0.035)
                 accent = Color(red: 1, green: 0.886, blue: 0)
+            case "googletvhome", "androidtvhome":
+                name = raw; symbol = "house"
             case "tv", "livetv", "dtv", "atv":
                 name = "Live TV"; symbol = "antenna.radiowaves.left.and.right"
             case "tvchannels":

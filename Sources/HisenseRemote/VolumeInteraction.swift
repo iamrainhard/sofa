@@ -19,6 +19,15 @@ struct VolumeInteraction {
         // Broadcasts can be older than the outstanding SOAP write/readback.
         if target == nil && inFlight == nil { confirmed = min(100, max(0, value)) }
     }
+    /// Relative-key adapters replace pending intent immediately, so reversing a
+    /// drag cannot leave the TV walking toward an obsolete endpoint.
+    mutating func supersedeRequest() -> Request? {
+        guard let target else { return nil }
+        sequence += 1
+        let request = Request(id: sequence, value: target)
+        inFlight = request
+        return request
+    }
     mutating func nextRequest() -> Request? {
         guard inFlight == nil, let target else { return nil }
         if target == confirmed {
@@ -37,5 +46,6 @@ struct VolumeInteraction {
         if target == request.value, !editing { target = nil }
         return true
     }
+    mutating func finishRelativeEdit() { if inFlight == nil { target = nil } }
     mutating func cancel() { target = nil; inFlight = nil; editing = false }
 }

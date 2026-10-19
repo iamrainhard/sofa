@@ -6,9 +6,11 @@ struct OnboardingView: View {
     @ObservedObject var model: RemoteModel
     @State private var started = false
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer(minLength: 12)
-            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 100, height: 100)
+        VStack(spacing: 16) {
+            Spacer(minLength: 8)
+            if !started && (model.previewState == nil || model.previewState == "welcome") || model.ready {
+                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 100, height: 100)
+            }
             if !started && (model.previewState == nil || model.previewState == "welcome") && !model.ready {
                 VStack(spacing: 8) {
                     Text("Meet Sofa.").font(.system(size: 32, weight: .semibold, design: .rounded))
@@ -20,7 +22,7 @@ struct OnboardingView: View {
                     benefit("lock.shield", "At home on your network", "Pair directly. No Sofa account needed.")
                 }.padding(.vertical, 12)
                 Button("Set up my TV") { started = true }.buttonStyle(.glassProminent).controlSize(.large)
-                Text("For compatible Hisense VIDAA TVs.\nKeep your Mac and TV on the same network.")
+                Text("Hisense VIDAA · Google TV · Android TV\nGoogle / Android TV support is experimental.")
                     .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             } else if model.ready {
                 VStack(spacing: 9) {
@@ -71,14 +73,15 @@ struct ConnectionSetupView: View {
                 Button("Trust this TV") { model.trustTV() }.buttonStyle(.glassProminent)
                 Button("Choose another TV") { model.disconnect() }.buttonStyle(.plain)
             } else if model.status == "pairing" {
+                Text(model.platformTitle).font(.caption).foregroundStyle(.secondary)
                 Text("Pair your Mac").font(.title2.bold())
-                Text("Show a pairing code on your TV, then enter it here.").font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                Button(model.pendingPair ? "Show a new code" : "Show code on TV") { model.pair() }.buttonStyle(.glass)
-                TextField("Pairing code", text: $model.pin).textFieldStyle(.roundedBorder)
+                Text(model.pairingPrompt).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                Button(model.pendingPair ? "Show a new code" : "Show code on TV") { model.pair() }.buttonStyle(.glass).disabled(model.isBusy)
+                TextField(model.activePlatform == .androidtv ? "Six-character code" : "Pairing code", text: $model.pin).textFieldStyle(.roundedBorder)
                     .font(.title2.monospaced()).multilineTextAlignment(.center)
-                    .onChange(of: model.pin) { _, value in model.pin = ConnectionInput.pairingCode(value) }
-                    .onSubmit { if validPIN { model.submitPIN() } }
-                Button("Pair Mac") { model.submitPIN() }.buttonStyle(.glassProminent).disabled(!validPIN)
+                    .onChange(of: model.pin) { _, value in model.pin = model.activePlatform.pairingCode(value) }
+                    .onSubmit { if model.validPIN && !model.isBusy { model.submitPIN() } }
+                Button(model.isBusy ? "Checking code…" : "Pair Mac") { model.submitPIN() }.buttonStyle(.glassProminent).disabled(!model.validPIN || model.isBusy)
                 Button("Back") { model.disconnect() }.buttonStyle(.plain)
             } else {
                 Text("Find your TV").font(.title2.bold())
@@ -91,21 +94,25 @@ struct ConnectionSetupView: View {
                     ScrollView(.horizontal) {
                         HStack(spacing: 10) {
                             ForEach(model.discoveredTVs) { tv in
-                                Button { model.host = tv.host; model.connect() } label: {
-                                    HStack { Image(systemName: "tv"); VStack(alignment: .leading) { Text(tv.name).lineLimit(1); Text(tv.host).font(.caption).foregroundStyle(.secondary) }; Spacer(); Image(systemName: "chevron.right") }.padding(5).frame(width: 210)
+                                Button { model.choose(tv) } label: {
+                                    HStack { Image(systemName: "tv"); VStack(alignment: .leading) { Text(tv.name).lineLimit(1); Text(tv.platform.title).font(.caption2).foregroundStyle(.secondary); Text(tv.host).font(.caption2).foregroundStyle(.tertiary) }; Spacer(); Image(systemName: "chevron.right") }.padding(5).frame(width: 210)
                                 }.buttonStyle(.glass).disabled(model.isBusy)
                             }
                         }.padding(4)
-                    }.scrollIndicators(.hidden).frame(height: 60)
+                    }.scrollIndicators(.hidden).frame(height: 72)
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Or enter the TV’s IP address").font(.caption).foregroundStyle(.secondary)
                     TextField("192.168.1.100", text: $model.host).textFieldStyle(.roundedBorder).disabled(model.isBusy).onSubmit { if !model.isBusy { model.connect() } }
-                    Text("Find it in your TV’s Settings → Network.").font(.caption2).foregroundStyle(.secondary)
+                    Picker("TV platform", selection: $model.selectedPlatform) {
+                        ForEach(TVConnectionPlatform.allCases) { platform in Text(platform.title).tag(platform) }
+                    }.disabled(model.isBusy)
+                    Text(model.selectedPlatform == .androidtv ? "Experimental · Uses Android TV Remote Service. No developer mode needed." : "Find the address in your TV’s Settings → Network.").font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 Button { model.connect() } label: {
                     HStack { if model.isBusy { ProgressView().controlSize(.small) }; Text(model.isBusy ? "Connecting…" : "Connect") }
                 }.buttonStyle(.glassProminent).disabled(model.host.isEmpty || model.isBusy)
+                if model.isBusy { Button("Cancel", action: model.disconnect).buttonStyle(.plain) }
                 if model.pairingNeedsAttention {
                     Button("Pair again with a new TV code") { model.repair() }.buttonStyle(.glass)
                 }
@@ -116,7 +123,6 @@ struct ConnectionSetupView: View {
             if let error = model.error { Text(error).font(.caption).foregroundStyle(.orange).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true) }
         }
     }
-    private var validPIN: Bool { (4...8).contains(model.pin.count) && model.pin.allSatisfy { $0.isASCII && $0.isNumber } }
 }
 
 struct SofaSettingsView: View {
@@ -147,6 +153,10 @@ struct SofaSettingsView: View {
                         catch { loginError = error.localizedDescription; loginEnabled = SMAppService.mainApp.status == .enabled }
                     }
                     Toggle("Connect to my TV when Sofa opens", isOn: $model.reconnectOnLaunch)
+                    if model.activePlatform == .androidtv {
+                        Toggle("Keyboard and current app updates", isOn: $model.androidIME)
+                        Text("Turn off if your TV hides its on-screen keyboard. Reconnect to apply.").font(.caption).foregroundStyle(.secondary)
+                    }
                     Text("Sofa stays in your menu bar. Closing its panel keeps the connection available; choose Quit from the menu to stop it.").font(.callout).foregroundStyle(.secondary)
                     if SMAppService.mainApp.status == .requiresApproval { Button("Allow in Login Items settings") { SMAppService.openSystemSettingsLoginItems() } }
                     if let loginError { Text(loginError).font(.caption).foregroundStyle(.orange) }
@@ -159,10 +169,10 @@ struct SofaSettingsView: View {
                 VStack(spacing: 5) { Text("Sofa").font(.largeTitle.bold()); Text("Your TV. Within reach.").foregroundStyle(.secondary); Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.0") · Beta").font(.caption).foregroundStyle(.secondary) }
                 HStack { Link("GitHub", destination: URL(string: "https://github.com/iamrainhard/sofa")!); Link("Check for updates", destination: URL(string: "https://github.com/iamrainhard/sofa/releases")!) }
                 HStack { Link("Privacy", destination: URL(string: "https://github.com/iamrainhard/sofa/blob/main/docs/PRIVACY.md")!); Link("Help", destination: URL(string: "https://github.com/iamrainhard/sofa/blob/main/docs/TROUBLESHOOTING.md")!) }
-                Text("Free and open source. Made by Rainhard Ngambiye.\nIndependent software, not affiliated with Hisense or VIDAA.").font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                Text("Free and open source. Made by Rainhard Ngambiye.\nIndependent software, not affiliated with TV manufacturers or platform owners.").font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
-        }.padding(26).frame(width: 410, height: 520)
+        }.padding(26).frame(width: 410, height: model.ready ? 520 : 600)
         .confirmationDialog("Forget this TV?", isPresented: $forget, titleVisibility: .visible) {
             Button("Forget TV", role: .destructive) { model.forgetTV() }
         } message: { Text("Removes this Mac’s saved pairing and TV settings. You’ll need a new code from the TV to reconnect.") }

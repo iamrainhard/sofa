@@ -6,6 +6,7 @@ struct CatalogShelf: View {
     let pending: TVDestination?
     let feedback: String?
     var inputs = false
+    var shortcuts = false
     var action: (TVItem) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
@@ -49,9 +50,9 @@ struct CatalogShelf: View {
                 } action: { _, value in edges = value }
             }
             HStack(spacing: 8) {
-                Text(feedback ?? (pending.map { "Opening \(AppBrand($0.name).title)…" } ?? "\(items.count) \(inputs ? "inputs" : "apps") on your TV"))
+                Text(feedback ?? (pending.map { "Opening \(AppBrand($0.name).title)…" } ?? (shortcuts ? "Shortcuts · app must be installed" : "\(items.count) \(inputs ? "inputs" : "apps") on your TV")))
                     .font(.system(size: 10)).foregroundStyle(feedback == nil ? Color.secondary : .orange)
-                    .lineLimit(1).help(feedback ?? "Apps and inputs reported by your TV")
+                    .lineLimit(1).help(feedback ?? (shortcuts ? "These are shortcuts, not a list of installed apps" : "Apps and inputs reported by your TV"))
                 Spacer(minLength: 2)
                 if items.count > (inputs ? 4 : 3) {
                     pageButton("chevron.left", title: "Previous \(inputs ? "inputs" : "apps")", disabled: edges.start) { move(-1) }

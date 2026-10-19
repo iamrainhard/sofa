@@ -7,6 +7,20 @@ import Network
 @MainActor
 final class RemoteModel: ObservableObject {
     @Published var host = UserDefaults.standard.string(forKey: "tvHost") ?? ""
+    @Published var selectedPlatform = TVConnectionPlatform(rawValue: UserDefaults.standard.string(forKey: "tvConnectionPlatform") ?? "") ?? (UserDefaults.standard.string(forKey: "tvHost")?.isEmpty == false ? .vidaa : .automatic)
+    @Published private(set) var activePlatform = TVConnectionPlatform(rawValue: UserDefaults.standard.string(forKey: "tvConnectionPlatform") ?? "vidaa") ?? .vidaa
+    @Published var androidIME = UserDefaults.standard.object(forKey: "androidIME") as? Bool ?? true {
+        didSet { defaults.set(androidIME, forKey: "androidIME") }
+    }
+    var platformTitle: String { activePlatform.title }
+    var canStepVolume: Bool { ready && (hasVolume || activePlatform == .androidtv) }
+    @Published private var androidSliderAvailable = true
+    var canSetVolume: Bool { ready && hasVolume && (activePlatform.supportsAbsoluteVolume || (activePlatform == .androidtv && androidSliderAvailable)) }
+    var pairingPrompt: String { activePlatform == .androidtv ? "Enter the six-character code shown on your TV. Letters A–F are normal." : "Show a pairing code on your TV, then enter it here." }
+    var validPIN: Bool { activePlatform.validPairingCode(pin) }
+    private var sessionID = UUID().uuidString
+    private var discoveryID = UUID().uuidString
+    private let androidDiscovery = TVDiscovery()
     @Published var deviceName = "Your TV"
     @Published var nickname = UserDefaults.standard.string(forKey: "tvNickname") ?? "" {
         didSet { defaults.set(nickname, forKey: "tvNickname") }
@@ -22,30 +36,51 @@ final class RemoteModel: ObservableObject {
     @Published var reconnectOnLaunch = UserDefaults.standard.object(forKey: "autoConnect") as? Bool ?? true {
         didSet { defaults.set(reconnectOnLaunch, forKey: "autoConnect") }
     }
-    let previewState = Bundle.main.object(forInfoDictionaryKey: "SofaPreviewState") as? String
+    let previewState: String?
     func completeSetup() { onboardingComplete = true; defaults.set(true, forKey: "onboardingComplete") }
     func discover() {
         guard previewState == nil, !discovering else { return }
         startBridge()
         guard process != nil else { return }
+        let token = UUID().uuidString
+        discoveryID = token
         discovering = true; discoveredTVs = []; discoveryMessage = "Looking on your local network…"
-        send(["action": "discover"])
-        DispatchQueue.main.asyncAfter(deadline: .now() + 25) { [weak self] in
-            guard let self, self.discovering else { return }
-            self.discovering = false; self.discoveryMessage = "No TV found. You can enter its IP address below."
+        androidDiscovery.start { [weak self] tv in
+            guard let self, self.discoveryID == token, self.discovering else { return }
+            self.addDiscovered(tv)
+        } failed: { [weak self] in
+            guard let self, self.discoveryID == token else { return }
+            self.discoveryMessage = "Discovery needs Local Network access. You can also enter an IP address."
         }
+        send(["action": "discover", "discovery": token])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+            guard let self, self.discoveryID == token else { return }
+            self.androidDiscovery.stop(); self.discovering = false
+            self.discoveryMessage = self.discoveredTVs.isEmpty ? "No TV found. Check Local Network access or enter its address." : "Choose your TV to connect."
+        }
+    }
+    private func addDiscovered(_ tv: DiscoveredTV) {
+        guard !discoveredTVs.contains(where: { $0.id == tv.id }) else { return }
+        discoveredTVs.append(tv)
+        discoveryMessage = "Choose your TV to connect."
+    }
+    func choose(_ tv: DiscoveredTV) {
+        host = tv.host; selectedPlatform = tv.platform; deviceName = tv.name
+        connect()
     }
     func forgetTV() {
         guard clearCredentials(host) else { error = "Sofa couldn’t remove the pairing from Keychain. Unlock your login Keychain and try again."; return }
-        disconnect(); defaults.removeObject(forKey: "certificate.\(host)")
+        disconnect(); defaults.removeObject(forKey: activePlatform.certificateKey(host: host))
         host = ""; nickname = ""; deviceName = "Your TV"; defaults.removeObject(forKey: "tvHost")
         onboardingComplete = false; defaults.set(false, forKey: "onboardingComplete"); settingsVisible = false
+        defaults.removeObject(forKey: "tvConnectionPlatform"); selectedPlatform = .automatic
     }
     @Published var modelName = "Hisense · VIDAA"
     @Published var status = "offline" {
         didSet {
             if status != "ready" {
                 hasVolume = false
+                androidSliderAvailable = true
                 powerState = .unknown; powerChanging = false
                 activeDestination = nil; pendingDestination = nil; destinationFeedback = nil
                 destinationTimeout?.cancel(); destinationRefresh?.cancel()
@@ -132,7 +167,6 @@ final class RemoteModel: ObservableObject {
     private var reconnectWork: DispatchWorkItem?
     private var connectedHost = ""
     private let defaults = UserDefaults.standard
-    private let keychainService = "com.rain.luma-remote.vidaa"
     var ready: Bool { status == "ready" }
     var statusLabel: String {
         switch status {
@@ -151,13 +185,23 @@ final class RemoteModel: ObservableObject {
         defaults.set(value, forKey: "clientDeviceID")
         return value
     }
-    init() {
+    init(previewState: String? = nil) {
+        self.previewState = previewState ?? Bundle.main.object(forInfoDictionaryKey: "SofaPreviewState") as? String
         onboardingComplete = defaults.bool(forKey: "onboardingComplete") || (!host.isEmpty && defaults.bool(forKey: "autoConnect"))
-        if let previewState {
+        if let previewState = self.previewState {
             host = "192.168.1.100"; deviceName = "Living Room TV"
             onboardingComplete = previewState == "remote" || previewState == "offline" || previewState == "connecting"
             if previewState == "remote" || previewState == "success" {
                 status = "ready"; hasVolume = true; sourceName = "Home"; volumeInteraction.report(24)
+            }
+            if previewState.hasPrefix("android") {
+                activePlatform = .androidtv; selectedPlatform = .androidtv
+                if previewState == "android-pair" { status = "pairing"; pendingPair = true }
+                if previewState == "android-home" || previewState == "android-remote" {
+                    onboardingComplete = true; status = "ready"; sourceName = "Google TV Home"; hasVolume = true; volumeInteraction.report(36)
+                    apps = [TVItem(id: 0, name: "YouTube"), TVItem(id: 1, name: "Netflix"), TVItem(id: 2, name: "Prime Video"), TVItem(id: 3, name: "Disney+")]
+                    viewMode = previewState == "android-remote" ? 1 : 0
+                }
             }
             if previewState == "remote" { viewMode = 1 }
             if previewState == "pair" { status = "pairing" }
@@ -223,9 +267,11 @@ final class RemoteModel: ObservableObject {
         guard generation == bridgeGeneration else { return }
         process = nil; input = nil; status = "offline"; isBusy = false
     }
-    func shutdown() { destinationTimeout?.cancel(); destinationRefresh?.cancel(); volumeWork?.cancel(); volumeTimeout?.cancel(); volumeReadback?.cancel(); powerTimeout?.cancel(); powerRefresh?.cancel(); networkCheck?.cancel(); input?.closeFile(); process?.terminate(); reader?.cancel() }
+    func shutdown() { destinationTimeout?.cancel(); destinationRefresh?.cancel(); volumeWork?.cancel(); volumeTimeout?.cancel(); volumeReadback?.cancel(); powerTimeout?.cancel(); powerRefresh?.cancel(); androidDiscovery.stop(); networkCheck?.cancel(); input?.closeFile(); process?.terminate(); reader?.cancel() }
     func send(_ value: [String: Any]) {
-        guard let input, let data = try? JSONSerialization.data(withJSONObject: value) else { return }
+        var message = value
+        message["session"] = sessionID
+        guard let input, let data = try? JSONSerialization.data(withJSONObject: message) else { return }
         do { try input.write(contentsOf: data + Data([10])) }
         catch { self.error = "The local connection stopped. Reconnect to try again."; status = "offline" }
     }
@@ -235,46 +281,52 @@ final class RemoteModel: ObservableObject {
             error = "Enter your TV’s private IPv4 address, such as 192.168.1.100."; return
         }
         networkCheck?.cancel(); networkCheck = nil
+        androidDiscovery.stop(); discovering = false; discoveryID = UUID().uuidString
+        reconnectWork?.cancel()
+        sessionID = UUID().uuidString
         startBridge()
-        guard process != nil else { isBusy = false; status = "offline"; return }
+        guard process != nil else { return }
         send(["action": "disconnect"])
         host = candidate; localNetworkNeedsAttention = false; pairingNeedsAttention = false; credentialWarning = nil
+        pendingPair = false; pin = ""; apps = []; sources = []; sourceName = "Connected TV"
         error = nil; status = "connecting"; isBusy = true
-        let check = NWConnection(host: NWEndpoint.Host(candidate), port: 36669, using: .tcp)
+        let candidates: [TVConnectionPlatform] = selectedPlatform == .automatic ? [.androidtv, .vidaa] : [selectedPlatform]
+        checkNetwork(candidate, candidates: candidates, session: sessionID)
+    }
+    private func checkNetwork(_ host: String, candidates: [TVConnectionPlatform], session: String) {
+        guard session == sessionID, let platform = candidates.first else { return }
+        let check = NWConnection(host: NWEndpoint.Host(host), port: NWEndpoint.Port(rawValue: platform.port)!, using: .tcp)
         networkCheck = check
+        let failed: () -> Void = { [weak self, weak check] in
+            guard let self, let check, self.networkCheck === check, self.sessionID == session else { return }
+            check.cancel(); self.networkCheck = nil
+            if candidates.count > 1 { self.checkNetwork(host, candidates: Array(candidates.dropFirst()), session: session) }
+            else {
+                self.status = "offline"; self.isBusy = false
+                self.error = "No compatible remote service responded. Keep the TV awake, check its address, or select its platform below."
+            }
+        }
         check.stateUpdateHandler = { [weak self, weak check] state in
             DispatchQueue.main.async {
-                guard let self, let check, self.networkCheck === check else { return }
+                guard let self, let check, self.networkCheck === check, self.sessionID == session else { return }
                 switch state {
                 case .ready:
                     check.cancel(); self.networkCheck = nil
-                    guard self.host == candidate else {
-                        self.isBusy = false; self.status = "offline"
-                        self.error = "The address changed. Choose Connect to use the new address."
-                        return
-                    }
+                    self.activePlatform = platform
                     self.connectBridge()
-                case .preparing:
-                    self.error = nil; self.status = "connecting"; self.isBusy = true
                 case .waiting:
-                    self.isBusy = false; self.status = "offline"
                     if check.currentPath?.unsatisfiedReason == .localNetworkDenied {
-                        self.localNetworkNeedsAttention = true
+                        check.cancel(); self.networkCheck = nil
+                        self.localNetworkNeedsAttention = true; self.isBusy = false; self.status = "offline"
                         self.error = "Allow Sofa in System Settings → Privacy & Security → Local Network, then Connect again."
-                    } else { self.error = "TV not reachable. Make sure it is awake and on the same Wi-Fi." }
-                case .failed(let error):
-                    self.isBusy = false; self.status = "offline"; self.error = error.localizedDescription
-                    check.cancel(); self.networkCheck = nil
+                    }
+                case .failed: failed()
                 default: break
                 }
             }
         }
         check.start(queue: .global(qos: .userInitiated))
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self, weak check] in
-            guard let self, let check, self.networkCheck === check else { return }
-            if !self.localNetworkNeedsAttention { self.error = "The TV did not respond. Check its IP address and Local Network permission." }
-            self.isBusy = false; self.status = "offline"; check.cancel(); self.networkCheck = nil
-        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + (selectedPlatform == .automatic ? 4 : 12)) { failed() }
     }
     private func connectBridge() {
         reconnectWork?.cancel()
@@ -284,8 +336,11 @@ final class RemoteModel: ObservableObject {
         error = nil; fingerprint = ""; isBusy = true; status = "connecting"
         hasVolume = false; apps = []; sources = []; connectedHost = host
         defaults.set(host, forKey: "tvHost")
+        defaults.set(activePlatform.rawValue, forKey: "tvConnectionPlatform")
+        selectedPlatform = activePlatform
         var request: [String: Any] = ["action": "connect", "host": host, "device": deviceID,
-                                     "fingerprint": defaults.string(forKey: "certificate.\(host)") ?? ""]
+                                     "platform": activePlatform.rawValue, "enable_ime": androidIME,
+                                     "fingerprint": defaults.string(forKey: activePlatform.certificateKey(host: host)) ?? ""]
         do {
             if let saved = try loadCredentials(host) { request["saved"] = saved }
         } catch {
@@ -293,20 +348,20 @@ final class RemoteModel: ObservableObject {
             self.error = "Sofa couldn’t read its saved pairing. Unlock your login Keychain and allow Sofa when macOS asks, then connect again. If the saved pairing is damaged, use Pair again."
             isBusy = false; status = "offline"; return
         }
-        send(["action": "probe", "host": host])
         send(request)
     }
     func trustTV() {
         guard !fingerprint.isEmpty else { return }
-        defaults.set(fingerprint, forKey: "certificate.\(host)")
+        defaults.set(fingerprint, forKey: activePlatform.certificateKey(host: host))
         connect()
     }
     func pair() {
-        error = nil; pendingPair = true; pin = ""
+        error = nil; pendingPair = true; pin = ""; isBusy = true
         send(["action": "pair"])
     }
     func submitPIN() {
-        error = nil
+        guard validPIN, !isBusy else { return }
+        error = nil; isBusy = true
         send(["action": "pin", "pin": pin])
         activity = "Checking pairing code…"
     }
@@ -315,6 +370,7 @@ final class RemoteModel: ObservableObject {
         connect()
     }
     func disconnect() {
+        sessionID = UUID().uuidString
         networkCheck?.cancel(); networkCheck = nil
         reconnectWork?.cancel()
         send(["action": "disconnect"]); status = "offline"; hasVolume = false; isBusy = false
@@ -324,23 +380,33 @@ final class RemoteModel: ObservableObject {
     func refresh() { error = nil; send(["action": "refresh"]) }
     func key(_ key: String, label: String) {
         guard ready else { settingsVisible = true; return }
+        guard activePlatform.supportsKey(key) else { return }
         if previewState != nil { activity = "Preview · \(label)"; return }
         send(["action": "key", "key": key, "label": label])
     }
     func beginVolumeEdit() { volumeInteraction.begin() }
-    func endVolumeEdit() { volumeInteraction.end(); drainVolume() }
+    func endVolumeEdit() {
+        volumeInteraction.end()
+        if activePlatform == .androidtv { volumeInteraction.finishRelativeEdit() } else { drainVolume() }
+    }
     func setVolume(_ value: Double) {
-        guard hasVolume && ready else { return }
+        guard canSetVolume else { return }
         volumeInteraction.propose(value)
-        if volumeWork == nil { drainVolume() }
+        if activePlatform == .androidtv {
+            if let request = volumeInteraction.supersedeRequest() { sendVolume(request) }
+        } else if volumeWork == nil { drainVolume() }
     }
     private func drainVolume() {
         guard ready, let request = volumeInteraction.nextRequest() else { return }
+        sendVolume(request)
+    }
+    private func sendVolume(_ request: VolumeInteraction.Request) {
         send(["action": "volume", "value": Int(request.value), "request": request.id])
         volumeTimeout?.cancel()
         let timeout = DispatchWorkItem { [weak self] in
             guard let self, self.volumeInteraction.inFlight?.id == request.id else { return }
             self.volumeInteraction.cancel()
+            if self.activePlatform == .androidtv { self.send(["action": "cancel_volume"]); self.androidSliderAvailable = false }
             self.error = "Volume update wasn’t confirmed. Refresh to read the TV."
         }
         volumeTimeout = timeout
@@ -355,6 +421,7 @@ final class RemoteModel: ObservableObject {
             return
         }
         volumeInteraction.complete(id: id, actual: Double(actual))
+        if activePlatform == .androidtv { return }
         ignoreVolumeBroadcastsUntil = Date().addingTimeInterval(0.6)
         volumeReadback?.cancel()
         let readback = DispatchWorkItem { [weak self] in
@@ -370,8 +437,20 @@ final class RemoteModel: ObservableObject {
         volumeWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: work)
     }
-    func stepVolume(_ amount: Int) { setVolume(volume + Double(amount)) }
-    func toggleMute() { guard hasVolume && ready else { return }; send(["action": "mute", "value": !muted]) }
+    func stepVolume(_ amount: Int) {
+        guard canStepVolume else { return }
+        if activePlatform.supportsAbsoluteVolume { setVolume(volume + Double(amount)) }
+        else {
+            volumeInteraction.cancel(); volumeTimeout?.cancel()
+            key(amount > 0 ? "VOLUMEUP" : "VOLUMEDOWN", label: amount > 0 ? "Volume up" : "Volume down")
+        }
+    }
+    func toggleMute() {
+        guard canStepVolume else { return }
+        if activePlatform == .androidtv { volumeInteraction.cancel(); volumeTimeout?.cancel() }
+        send(["action": "mute", "value": !muted])
+    }
+    func showInputPicker() { key("INPUT", label: "Input menu") }
     func launch(_ item: TVItem) { openDestination(item, action: "app") }
     func selectSource(_ item: TVItem) { openDestination(item, action: "source") }
     private func openDestination(_ item: TVItem, action: String) {
@@ -387,23 +466,25 @@ final class RemoteModel: ObservableObject {
         let timeout = DispatchWorkItem { [weak self] in
             guard let self, self.pendingDestination?.key == item.destination.key else { return }
             self.pendingDestination = nil
-            self.destinationFeedback = "Couldn’t confirm \(item.name). Try again."
+            self.destinationFeedback = self.activePlatform == .androidtv ? "Not confirmed. Install this app on your TV first." : "Couldn’t confirm \(item.name). Try again."
         }
         destinationTimeout = timeout
         DispatchQueue.main.asyncAfter(deadline: .now() + 12, execute: timeout)
     }
     func receive(_ object: [String: Any]) {
+        if object["event"] as? String != "discovery", previewState == nil || object["session"] != nil {
+            guard object["session"] as? String == sessionID else { return }
+        }
         switch object["event"] as? String {
         case "discovery":
-            discovering = false
-            discoveredTVs = (object["devices"] as? [[String: String]] ?? []).compactMap { value in
-                guard let host = value["host"] else { return nil }
-                return DiscoveredTV(host: host, name: value["name"] ?? "VIDAA TV", model: value["model"] ?? "")
+            guard object["discovery"] as? String == discoveryID, discovering else { return }
+            for value in object["devices"] as? [[String: String]] ?? [] {
+                guard let host = value["host"] else { continue }
+                addDiscovered(DiscoveredTV(host: host, name: value["name"] ?? "VIDAA TV", model: value["model"] ?? "", platform: .vidaa))
             }
-            discoveryMessage = discoveredTVs.isEmpty ? "No TV found. Enter its IP address below." : "Choose your TV to connect."
         case "device":
             if let name = object["name"] as? String, !name.isEmpty { deviceName = name }
-            if let name = object["model"] as? String, !name.isEmpty { modelName = "Hisense · \(name)" }
+            if let name = object["model"] as? String, !name.isEmpty { modelName = activePlatform == .vidaa ? "Hisense · \(name)" : name }
         case "volume":
             if let value = object["value"] as? Int {
                 if object["source"] as? String == "readback" || Date() >= ignoreVolumeBroadcastsUntil {
@@ -413,12 +494,18 @@ final class RemoteModel: ObservableObject {
             }
             if let value = object["muted"] as? Bool { muted = value }
         case "volume_result": volumeCompleted(object)
+        case "volume_control_unavailable":
+            if activePlatform == .androidtv {
+                androidSliderAvailable = false; volumeInteraction.cancel(); volumeTimeout?.cancel()
+                error = "This TV isn’t confirming volume changes. Use − / +, or reconnect to try the slider again."
+            }
         case "mute": muted = object["value"] as? Bool ?? false
         case "status":
             // The disconnect acknowledgement belongs to the previous session, not the native permission/reachability check.
             if networkCheck != nil, object["value"] as? String == "offline" { return }
             status = object["value"] as? String ?? "offline"
             isBusy = status == "connecting"
+            if status == "pairing" { settingsVisible = onboardingComplete; pendingPair = activePlatform == .androidtv }
             if ready {
                 pendingPair = false; pin = ""; error = credentialWarning; activity = "You’re in control"
 
@@ -457,7 +544,7 @@ final class RemoteModel: ObservableObject {
         }
     }
     private func keychainQuery(_ host: String) -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: host]
+        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: activePlatform.keychainService, kSecAttrAccount as String: host]
     }
     private func loadCredentials(_ host: String) throws -> [String: Any]? {
         var query = keychainQuery(host)
@@ -488,5 +575,3 @@ final class RemoteModel: ObservableObject {
         return result == errSecSuccess || result == errSecItemNotFound
     }
 }
-
-struct DiscoveredTV: Identifiable { var id: String { host }; let host: String; let name: String; let model: String }

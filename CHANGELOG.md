@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0-beta.1 — development
+
+- Separate VIDAA and Android TV connection adapters behind a session-scoped JSON bridge. Preserve the existing VIDAA wire implementation and Keychain namespace.
+- Experimental, brand-independent Google / Android TV Remote Service v2 support; no ADB or developer mode.
+- Bonjour discovery, manual platform selection, service detection, six-character Android pairing and saved reconnect.
+- Certificate verification on Android pairing/control connections, isolated credentials and redacted protocol errors.
+- Keep Android's glass volume slider when feedback is available, using bounded, feedback-paced relative keys with latest-target replacement and −/+ fallback. Retain VIDAA's direct volume control and real catalogs.
+- Platform-aware app shortcuts and input-menu action.
+- Correct each clickpad arrow's hover label and position; keep the centre OK glass stable during presses.
+- Native onboarding/remote previews and local TLS/protobuf integration checks. Physical Google / Android TV validation is still required.
+- Locked Android helper dependencies, included dependency licenses and automatic helper rebuild on source changes.
+
 ## 0.3.0-beta.1
 
 First public beta preparation:

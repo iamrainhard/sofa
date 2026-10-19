@@ -30,7 +30,7 @@ struct RemoteControlView: View {
             }
 
             HStack(spacing: 26) {
-                rocker(title: "VOLUME", upTitle: "Volume up", downTitle: "Volume down", top: "plus", bottom: "minus", enabled: model.ready && model.hasVolume,
+                rocker(title: "VOLUME", upTitle: "Volume up", downTitle: "Volume down", top: "plus", bottom: "minus", enabled: model.canStepVolume,
                        up: { model.stepVolume(1) }, down: { model.stepVolume(-1) })
                 VStack(spacing: 8) {
                     Button { model.toggleMute() } label: {
@@ -39,7 +39,7 @@ struct RemoteControlView: View {
                             .frame(width: 38, height: 38)
                     }.buttonStyle(.glass).buttonBorderShape(.circle)
                         .tint(model.muted ? .accentColor : nil)
-                        .disabled(!model.ready || !model.hasVolume)
+                        .disabled(!model.canStepVolume)
                         .buttonCaption(model.muted ? "Unmute" : "Mute")
                         .accessibilityLabel(model.muted ? "Unmute TV" : "Mute TV")
                     Text(model.hasVolume ? "\(Int(model.volume))" : "—")
@@ -53,7 +53,9 @@ struct RemoteControlView: View {
             }
 
             HStack(spacing: 10) {
-                Button(action: showInputs) { Label("Inputs", systemImage: "cable.connector") }
+                Button { if model.activePlatform.hasInputCatalog { showInputs() } else { model.showInputPicker() } } label: {
+                    Label(model.activePlatform.hasInputCatalog ? "Inputs" : "Input menu", systemImage: "cable.connector")
+                }
                     .buttonStyle(.glass).buttonBorderShape(.capsule).help("Choose a TV input")
                 Button { keypadVisible.toggle() } label: { Label("Keypad", systemImage: "number") }
                     .buttonStyle(.glass).buttonBorderShape(.capsule).disabled(!model.ready)
@@ -61,7 +63,7 @@ struct RemoteControlView: View {
                 Menu {
                     Button("Subtitles", systemImage: "captions.bubble") { model.key("SUBTITLE", label: "Subtitles") }
                     Button("Stop playback", systemImage: "stop.fill") { model.key("STOP", label: "Stop") }
-                    Button("Exit app", systemImage: "rectangle.portrait.and.arrow.right") { model.key("EXIT", label: "Exit") }
+                    if model.activePlatform.supportsKey("EXIT") { Button("Exit app", systemImage: "rectangle.portrait.and.arrow.right") { model.key("EXIT", label: "Exit") } }
                     Divider()
                     ForEach(["RED", "GREEN", "YELLOW", "BLUE"], id: \.self) { key in
                         Button("\(key.capitalized) function button") { model.key(key, label: key.capitalized) }
@@ -102,9 +104,9 @@ struct RemoteControlView: View {
             padDirection("chevron.left", title: "Left", key: "LEFT", angle: 180)
             Button { model.key("OK", label: "Select") } label: {
                 Text("OK").font(.system(size: 15, weight: .semibold, design: .rounded)).frame(width: 78, height: 78)
-            }.buttonStyle(.glass).buttonBorderShape(.circle)
-                .buttonCaption("Select").accessibilityLabel("Select")
-        }.frame(width: 184, height: 184).disabled(!model.ready).opacity(model.ready ? 1 : 0.5)
+            }.buttonStyle(ClickpadSelectStyle())
+                .accessibilityLabel("Select")
+        }.frame(width: 184, height: 184).clickpadCaption().disabled(!model.ready).opacity(model.ready ? 1 : 0.5)
     }
     private func padDirection(_ symbol: String, title: String, key: String, angle: Double) -> some View {
         let sector = ClickpadSector(angle: angle)
@@ -114,12 +116,12 @@ struct RemoteControlView: View {
                     Image(systemName: symbol).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
                         .offset(x: cos(angle * .pi / 180) * 70, y: sin(angle * .pi / 180) * 70)
                 }.contentShape(sector)
-        }.buttonStyle(ClickpadPressStyle(sector: sector)).buttonCaption(title).accessibilityLabel(title)
+        }.buttonStyle(ClickpadPressStyle(sector: sector)).accessibilityLabel(title)
     }
     private func control(_ symbol: String, title: String, key: String, size: CGFloat = 44) -> some View {
         Button { model.key(key, label: title) } label: {
             Image(systemName: symbol).font(.system(size: size == 44 ? 18 : 14, weight: .medium)).frame(width: size, height: size)
-        }.buttonStyle(.glass).buttonBorderShape(.circle).disabled(!model.ready)
+        }.buttonStyle(.glass).buttonBorderShape(.circle).disabled(!model.ready || !model.activePlatform.supportsKey(key))
             .buttonCaption(title).accessibilityLabel(title)
     }
     private func rocker(title: String, upTitle: String, downTitle: String, top: String, bottom: String, enabled: Bool, up: @escaping () -> Void, down: @escaping () -> Void) -> some View {
@@ -179,5 +181,25 @@ private struct RemotePressStyle: ButtonStyle {
             .background(Color.primary.opacity(configuration.isPressed ? 0.09 : 0), in: .rect(cornerRadius: 15))
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
             .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: configuration.isPressed)
+    }
+}
+
+/// Keep one material mounted throughout the press; the native interactive glass
+/// button inside the clickpad's glass surface caused a bright material flash.
+private struct ClickpadSelectStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background {
+                Circle().fill(reduceTransparency ? Color(nsColor: .controlBackgroundColor) : Color.clear)
+                    .glassEffect(reduceTransparency ? .identity : .regular, in: .circle)
+                    .overlay(Circle().fill(Color.primary.opacity(configuration.isPressed ? 0.09 : 0)))
+                    .overlay(Circle().strokeBorder(Color.primary.opacity(contrast == .increased ? 0.5 : 0.12), lineWidth: 1))
+            }
+            .contentShape(.circle)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .animation(reduceMotion ? nil : .smooth(duration: 0.16), value: configuration.isPressed)
     }
 }

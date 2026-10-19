@@ -65,7 +65,7 @@ struct RemoteView: View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(model.displayName).font(.system(size: 18, weight: .semibold, design: .rounded)).tracking(-0.3).lineLimit(1)
-                Label(model.ready ? "Hisense · VIDAA · " + (model.powerChanging ? "Changing…" : model.powerState == .unknown ? "Unknown" : model.powerState.title) : "Hisense · VIDAA", systemImage: "tv")
+                Label(model.ready ? model.platformTitle + " · " + (model.powerChanging ? "Changing…" : model.powerState == .unknown ? "Unknown" : model.powerState.title) : model.platformTitle, systemImage: "tv")
                     .font(.system(size: 11, weight: .medium)).foregroundStyle(Color.primary.opacity(0.62)).lineLimit(1)
             }
             Spacer(minLength: 8)
@@ -150,7 +150,16 @@ struct RemoteView: View {
             TVIllustration(title: model.ready ? model.sourceName : "Make yourself at home.", connected: model.ready, artworkURL: model.apps.first { model.activeDestination?.matches($0) == true }?.artworkURL)
                 .frame(height: 164).padding(.top, 8)
             volumePanel.padding(.horizontal, 26).padding(.top, 1)
-            CatalogSwitcher(selection: $selectedTab).padding(.top, 22)
+            Group {
+                if model.activePlatform.hasInputCatalog { CatalogSwitcher(selection: $selectedTab) }
+                else {
+                    HStack {
+                        Text("App shortcuts").font(.system(size: 13, weight: .semibold))
+                        Spacer()
+                        Button("Input menu", systemImage: "cable.connector", action: model.showInputPicker).buttonStyle(.glass).font(.caption)
+                    }.padding(.horizontal, 26).frame(height: 40)
+                }
+            }.padding(.top, 22)
             tabContent.frame(height: 158).padding(.horizontal, 20).padding(.top, 12)
         }
     }
@@ -170,18 +179,23 @@ struct RemoteView: View {
                 }
                 .buttonStyle(.glass).buttonBorderShape(.circle)
                 .tint(model.muted ? .accentColor : nil)
-                .disabled(!model.hasVolume || !model.ready)
+                .disabled(!model.canStepVolume)
                 .buttonCaption(model.muted ? "Unmute" : "Mute")
                 .accessibilityLabel(model.muted ? "Unmute TV" : "Mute TV")
                 .accessibilityValue(model.muted ? "Muted" : "Sound on")
             }
             HStack(spacing: 12) {
-                circleButton("minus", label: "Volume down", enabled: model.hasVolume && model.ready, size: 28) { model.stepVolume(-1) }
-                VolumeSlider(value: model.volume, enabled: model.hasVolume && model.ready,
-                             changed: model.setVolume, editingChanged: { editing in
-                    if editing { model.beginVolumeEdit() } else { model.endVolumeEdit() }
-                }, focusChanged: { volumeFocused = $0 }).frame(height: 32)
-                circleButton("plus", label: "Volume up", enabled: model.hasVolume && model.ready, size: 28) { model.stepVolume(1) }
+                circleButton("minus", label: "Volume down", enabled: model.canStepVolume, size: 28) { model.stepVolume(-1) }
+                if model.activePlatform.supportsAbsoluteVolume || model.canSetVolume {
+                    VolumeSlider(value: model.volume, enabled: model.canSetVolume,
+                                 changed: model.setVolume, editingChanged: { editing in
+                        if editing { model.beginVolumeEdit() } else { model.endVolumeEdit() }
+                    }, focusChanged: { volumeFocused = $0 }).frame(height: 32)
+                } else {
+                    Text("Use − / + to adjust").font(.system(size: 11)).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity).frame(height: 32)
+                }
+                circleButton("plus", label: "Volume up", enabled: model.canStepVolume, size: 28) { model.stepVolume(1) }
             }
         }
     }
@@ -192,12 +206,12 @@ struct RemoteView: View {
                 Button { model.settingsVisible = true } label: { Label("Connect your TV", systemImage: "link").font(.system(size: 12, weight: .semibold)).padding(5) }
                     .buttonStyle(.glassProminent).buttonBorderShape(.capsule).tint(.blue)
             }
-        } else if selectedTab == 1 {
+        } else if selectedTab == 1 && model.activePlatform.hasInputCatalog {
             if model.sources.isEmpty { emptyContent("No inputs received", subtitle: "Refresh to ask your TV again.") }
             else { CatalogShelf(items: model.sources, active: model.activeDestination, pending: model.pendingDestination, feedback: model.destinationFeedback, inputs: true, action: model.selectSource, scrollID: $inputScrollID) }
         } else {
             if model.apps.isEmpty { emptyContent("No apps received", subtitle: "Only apps reported by your TV appear here.") }
-            else { CatalogShelf(items: model.apps, active: model.activeDestination, pending: model.pendingDestination, feedback: model.destinationFeedback, action: model.launch, scrollID: $appScrollID) }
+            else { CatalogShelf(items: model.apps, active: model.activeDestination, pending: model.pendingDestination, feedback: model.destinationFeedback, shortcuts: !model.activePlatform.hasInstalledAppCatalog, action: model.launch, scrollID: $appScrollID) }
         }
     }
     private var fullRemote: some View {
@@ -233,7 +247,7 @@ struct RemoteView: View {
                 Menu {
                     Menu("TV controls") {
                         Button("Menu", systemImage: "line.3.horizontal") { model.key("MENU", label: "Menu") }
-                        Button("Exit", systemImage: "rectangle.portrait.and.arrow.right") { model.key("EXIT", label: "Exit") }
+                        if model.activePlatform.supportsKey("EXIT") { Button("Exit", systemImage: "rectangle.portrait.and.arrow.right") { model.key("EXIT", label: "Exit") } }
                         Button("Play", systemImage: "play.fill") { model.key("PLAY", label: "Play") }
                         Button("Pause", systemImage: "pause.fill") { model.key("PAUSE", label: "Pause") }
                     }.disabled(!model.ready)
