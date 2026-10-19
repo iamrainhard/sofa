@@ -21,7 +21,7 @@ struct OnboardingView: View {
                     benefit("sparkles.tv", "Your favourites, one click away", "Apps, inputs and volume in one place.")
                     benefit("lock.shield", "At home on your network", "Pair directly. No Sofa account needed.")
                 }.padding(.vertical, 12)
-                Button("Set up my TV") { started = true }.buttonStyle(.glassProminent).controlSize(.large)
+                Button("Set up my TV") { started = true }.buttonStyle(.sofaCapsule(prominent: true)).controlSize(.large)
                 Text("Hisense VIDAA · Google TV · Android TV\nGoogle / Android TV support is experimental.")
                     .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             } else if model.ready {
@@ -34,7 +34,7 @@ struct OnboardingView: View {
                 Text("You’ll find Sofa under the TV icon in your menu bar. You can change startup preferences in Settings.")
                     .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 if let warning = model.credentialWarning { Text(warning).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true) }
-                Button("Open Sofa") { model.completeSetup() }.buttonStyle(.glassProminent).controlSize(.large)
+                Button("Open Sofa") { model.completeSetup() }.buttonStyle(.sofaCapsule(prominent: true)).controlSize(.large)
             } else {
                 ConnectionSetupView(model: model)
             }
@@ -70,25 +70,25 @@ struct ConnectionSetupView: View {
                 DisclosureGroup("Certificate fingerprint", isExpanded: $certificateDetails) {
                     Text(model.fingerprint).font(.system(size: 9, design: .monospaced)).textSelection(.enabled)
                 }.font(.caption)
-                Button("Trust this TV") { model.trustTV() }.buttonStyle(.glassProminent)
+                Button("Trust this TV") { model.trustTV() }.buttonStyle(.sofaCapsule(prominent: true))
                 Button("Choose another TV") { model.disconnect() }.buttonStyle(.plain)
             } else if model.status == "pairing" {
                 Text(model.platformTitle).font(.caption).foregroundStyle(.secondary)
                 Text("Pair your Mac").font(.title2.bold())
                 Text(model.pairingPrompt).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                Button(model.pendingPair ? "Show a new code" : "Show code on TV") { model.pair() }.buttonStyle(.glass).disabled(model.isBusy)
+                Button(model.pendingPair ? "Show a new code" : "Show code on TV") { model.pair() }.buttonStyle(.sofaCapsule()).disabled(model.isBusy)
                 TextField(model.activePlatform == .androidtv ? "Six-character code" : "Pairing code", text: $model.pin).textFieldStyle(.roundedBorder)
                     .font(.title2.monospaced()).multilineTextAlignment(.center)
                     .onChange(of: model.pin) { _, value in model.pin = model.activePlatform.pairingCode(value) }
                     .onSubmit { if model.validPIN && !model.isBusy { model.submitPIN() } }
-                Button(model.isBusy ? "Checking code…" : "Pair Mac") { model.submitPIN() }.buttonStyle(.glassProminent).disabled(!model.validPIN || model.isBusy)
+                Button(model.isBusy ? "Checking code…" : "Pair Mac") { model.submitPIN() }.buttonStyle(.sofaCapsule(prominent: true)).disabled(!model.validPIN || model.isBusy)
                 Button("Back") { model.disconnect() }.buttonStyle(.plain)
             } else {
                 Text("Find your TV").font(.title2.bold())
                 Text("Turn on your TV and use the same Wi-Fi. If macOS asks, allow Local Network access so Sofa can find and control it.").font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 Button { model.discover() } label: {
                     HStack { if model.discovering { ProgressView().controlSize(.small) }; Text(model.discovering ? "Looking for TVs…" : "Find nearby TVs") }
-                }.buttonStyle(.glass).disabled(model.discovering || model.isBusy)
+                }.buttonStyle(.sofaCapsule()).disabled(model.discovering || model.isBusy)
                 if !model.discoveryMessage.isEmpty { Text(model.discoveryMessage).font(.caption).foregroundStyle(.secondary) }
                 if !model.discoveredTVs.isEmpty {
                     ScrollView(.horizontal) {
@@ -96,7 +96,7 @@ struct ConnectionSetupView: View {
                             ForEach(model.discoveredTVs) { tv in
                                 Button { model.choose(tv) } label: {
                                     HStack { Image(systemName: "tv"); VStack(alignment: .leading) { Text(tv.name).lineLimit(1); Text(tv.platform.title).font(.caption2).foregroundStyle(.secondary); Text(tv.host).font(.caption2).foregroundStyle(.tertiary) }; Spacer(); Image(systemName: "chevron.right") }.padding(5).frame(width: 210)
-                                }.buttonStyle(.glass).disabled(model.isBusy)
+                                }.buttonStyle(.sofaRounded()).disabled(model.isBusy)
                             }
                         }.padding(4)
                     }.scrollIndicators(.hidden).frame(height: 72)
@@ -111,10 +111,10 @@ struct ConnectionSetupView: View {
                 }
                 Button { model.connect() } label: {
                     HStack { if model.isBusy { ProgressView().controlSize(.small) }; Text(model.isBusy ? "Connecting…" : "Connect") }
-                }.buttonStyle(.glassProminent).disabled(model.host.isEmpty || model.isBusy)
+                }.buttonStyle(.sofaCapsule(prominent: true)).disabled(model.host.isEmpty || model.isBusy)
                 if model.isBusy { Button("Cancel", action: model.disconnect).buttonStyle(.plain) }
                 if model.pairingNeedsAttention {
-                    Button("Pair again with a new TV code") { model.repair() }.buttonStyle(.glass)
+                    Button("Pair again with a new TV code") { model.repair() }.buttonStyle(.sofaCapsule())
                 }
                 Button("Open Privacy & Security settings") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork") { NSWorkspace.shared.open(url) }
@@ -142,7 +142,7 @@ struct SofaSettingsView: View {
                     VStack(spacing: 5) { Text(model.displayName).font(.title3.bold()); Text(model.modelName).foregroundStyle(.secondary); Label("Connected", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.green) }
                     LabeledContent("TV name") { TextField("Optional name", text: $model.nickname).textFieldStyle(.roundedBorder).frame(width: 190) }
                     LabeledContent("IP address", value: model.host).font(.callout)
-                    HStack { Button("Refresh TV") { model.refresh() }; Button("Pair again") { model.repair() } }.buttonStyle(.glass)
+                    HStack { Button("Refresh TV") { model.refresh() }; Button("Pair again") { model.repair() } }.buttonStyle(.sofaCapsule())
                     Button("Forget this TV…", role: .destructive) { forget = true }.buttonStyle(.plain)
                 } else { ConnectionSetupView(model: model) }
             } else if tab == 1 {

@@ -20,12 +20,12 @@ python3 - <<'PY'
 import plistlib
 from pathlib import Path
 p=Path('build/Sofa.app/Contents/Info.plist')
-d=dict(CFBundleExecutable='Sofa',CFBundleIdentifier='com.rain.luma-remote',CFBundleName='Sofa',CFBundleDisplayName='Sofa',CFBundleVersion='7',CFBundleShortVersionString='0.4.0-beta.1',CFBundlePackageType='APPL',LSMinimumSystemVersion='26.0',LSUIElement=True,NSHighResolutionCapable=True,NSLocalNetworkUsageDescription='Sofa connects to your TV on your home network for discovery, remote controls and pairing.',NSBonjourServices=['_androidtvremote2._tcp'])
+d=dict(CFBundleExecutable='Sofa',CFBundleIdentifier='com.rain.luma-remote',CFBundleName='Sofa',CFBundleDisplayName='Sofa',CFBundleVersion='8',CFBundleShortVersionString='0.4.0-beta.1',CFBundlePackageType='APPL',LSMinimumSystemVersion='26.0',LSUIElement=True,NSHighResolutionCapable=True,NSLocalNetworkUsageDescription='Sofa connects to your TV on your home network for discovery, remote controls and pairing.',NSBonjourServices=['_androidtvremote2._tcp'])
 d.update(plistlib.loads(Path('build/icon-info.plist').read_bytes()))
 p.write_bytes(plistlib.dumps(d))
 h=Path('build/Sofa.app/Contents/Helpers/SofaBridge.app/Contents/Info.plist')
 helper=plistlib.loads(h.read_bytes())
-helper.update(CFBundleIdentifier='com.rain.sofa.bridge',CFBundleVersion='7',CFBundleShortVersionString='0.4.0',LSUIElement=True,NSLocalNetworkUsageDescription=d['NSLocalNetworkUsageDescription'])
+helper.update(CFBundleIdentifier='com.rain.sofa.bridge',CFBundleVersion='8',CFBundleShortVersionString='0.4.0',LSUIElement=True,NSLocalNetworkUsageDescription=d['NSLocalNetworkUsageDescription'])
 h.write_bytes(plistlib.dumps(helper))
 PY
 SIGNING_IDENTITY="${SOFA_SIGNING_IDENTITY:--}"

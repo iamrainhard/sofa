@@ -8,6 +8,7 @@
 - Certificate verification on Android pairing/control connections, isolated credentials and redacted protocol errors.
 - Keep Android's glass volume slider when feedback is available, using bounded, feedback-paced relative keys with latest-target replacement and −/+ fallback. Retain VIDAA's direct volume control and real catalogs.
 - Platform-aware app shortcuts and input-menu action.
+- Use a persistent glass surface for playback, navigation, mute, power, keypad, shelf and setup buttons; animate only the label and press overlay to avoid material flashes.
 - Correct each clickpad arrow's hover label and position; keep the centre OK glass stable during presses.
 - Native onboarding/remote previews and local TLS/protobuf integration checks. Physical Google / Android TV validation is still required.
 - Locked Android helper dependencies, included dependency licenses and automatic helper rebuild on source changes.

@@ -84,7 +84,7 @@ struct CatalogShelf: View {
     }
     private func pageButton(_ symbol: String, title: String, disabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) { Image(systemName: symbol).font(.system(size: 10, weight: .semibold)).frame(width: 25, height: 22).contentShape(Capsule()) }
-            .buttonStyle(.glass).buttonBorderShape(.capsule).disabled(disabled)
+            .buttonStyle(.sofaCapsule()).disabled(disabled)
             .help(title).accessibilityLabel(title)
     }
     private func appTile(_ item: TVItem) -> some View {

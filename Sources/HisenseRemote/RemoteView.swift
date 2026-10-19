@@ -73,8 +73,7 @@ struct RemoteView: View {
                 Image(systemName: "appletvremote.gen4")
                     .font(.system(size: 18, weight: .medium)).frame(width: 36, height: 36)
             }
-            .buttonStyle(.glass).buttonBorderShape(.circle)
-            .tint(model.viewMode == 1 ? ice : nil)
+            .buttonStyle(.sofaCircle(tint: model.viewMode == 1 ? ice : nil))
             .buttonCaption(model.viewMode == 1 ? "Dashboard" : "Remote")
             .accessibilityLabel(model.viewMode == 1 ? "Show dashboard" : "Show remote")
             .accessibilityValue(model.viewMode == 1 ? "Remote open" : "Dashboard open")
@@ -98,7 +97,7 @@ struct RemoteView: View {
                     }
                 }
             }
-            .buttonStyle(.glass).buttonBorderShape(.circle)
+            .buttonStyle(.sofaCircle())
             .disabled(!model.ready || model.powerChanging)
             .buttonCaption(model.powerActionTitle)
             .accessibilityLabel("TV power")
@@ -132,12 +131,12 @@ struct RemoteView: View {
             }
             VStack(spacing: 12) {
                 if busy {
-                    Button("Cancel", action: model.disconnect).buttonStyle(.glass).buttonBorderShape(.capsule)
+                    Button("Cancel", action: model.disconnect).buttonStyle(.sofaCapsule())
                 } else {
                     Button(needsSetup ? "Continue setup" : savedAddress ? "Reconnect" : "Set up my TV") {
                         if savedAddress && !needsSetup { model.connect() }
                         else { model.settingsVisible = true }
-                    }.buttonStyle(.glassProminent).buttonBorderShape(.capsule).controlSize(.large)
+                    }.buttonStyle(.sofaCapsule(prominent: true)).controlSize(.large)
                     Button("Connection settings") { model.settingsVisible = true }
                         .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
@@ -156,7 +155,7 @@ struct RemoteView: View {
                     HStack {
                         Text("App shortcuts").font(.system(size: 13, weight: .semibold))
                         Spacer()
-                        Button("Input menu", systemImage: "cable.connector", action: model.showInputPicker).buttonStyle(.glass).font(.caption)
+                        Button("Input menu", systemImage: "cable.connector", action: model.showInputPicker).buttonStyle(.sofaCapsule()).font(.caption)
                     }.padding(.horizontal, 26).frame(height: 40)
                 }
             }.padding(.top, 22)
@@ -177,8 +176,7 @@ struct RemoteView: View {
                         .contentTransition(.symbolEffect(.replace))
                         .frame(width: 36, height: 36)
                 }
-                .buttonStyle(.glass).buttonBorderShape(.circle)
-                .tint(model.muted ? .accentColor : nil)
+                .buttonStyle(.sofaCircle(tint: model.muted ? .accentColor : nil))
                 .disabled(!model.canStepVolume)
                 .buttonCaption(model.muted ? "Unmute" : "Mute")
                 .accessibilityLabel(model.muted ? "Unmute TV" : "Mute TV")
@@ -204,7 +202,7 @@ struct RemoteView: View {
             VStack(spacing: 10) {
                 Text("Your apps, one connection away.").font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
                 Button { model.settingsVisible = true } label: { Label("Connect your TV", systemImage: "link").font(.system(size: 12, weight: .semibold)).padding(5) }
-                    .buttonStyle(.glassProminent).buttonBorderShape(.capsule).tint(.blue)
+                    .buttonStyle(.sofaCapsule(prominent: true)).tint(.blue)
             }
         } else if selectedTab == 1 && model.activePlatform.hasInputCatalog {
             if model.sources.isEmpty { emptyContent("No inputs received", subtitle: "Refresh to ask your TV again.") }
@@ -219,13 +217,13 @@ struct RemoteView: View {
     }
     private func circleButton(_ symbol: String, label: String, enabled: Bool? = nil, size: CGFloat = 42, action: @escaping () -> Void) -> some View {
         Button(action: action) { Image(systemName: symbol).font(.system(size: size < 40 ? 12 : 16, weight: .medium)).frame(width: size, height: size) }
-            .buttonStyle(.glass).buttonBorderShape(.circle).disabled(!(enabled ?? model.ready)).buttonCaption(label).accessibilityLabel(label)
+            .buttonStyle(.sofaCircle()).disabled(!(enabled ?? model.ready)).buttonCaption(label).accessibilityLabel(label)
     }
     private func emptyContent(_ title: String, subtitle: String) -> some View {
         VStack(spacing: 7) {
             Text(title).font(.system(size: 12, weight: .semibold))
             Text(subtitle).font(.system(size: 11)).foregroundStyle(Color.primary.opacity(0.5))
-            Button("Refresh", action: model.refresh).buttonStyle(.glass).font(.system(size: 11))
+            Button("Refresh", action: model.refresh).buttonStyle(.sofaCapsule()).font(.system(size: 11))
         }
     }
     private var footer: some View {
