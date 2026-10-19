@@ -11,8 +11,9 @@ BUILD=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP/Contents/Info.p
 DMG="dist/Sofa-${VERSION}-build${BUILD}-arm64-preview.dmg"
 [[ ! -e "$DMG" ]] || { echo "Refusing to replace existing preview: $DMG"; exit 1; }
 STAGE=$(mktemp -d "${TMPDIR:-/tmp}/sofa-dmg.XXXXXX")
+ATTACHED=false
 cleanup() {
-  if mount | grep -Fq "on $STAGE/mount "; then hdiutil detach "$STAGE/mount"; fi
+  if $ATTACHED; then hdiutil detach "$STAGE/mount" || return; fi
   rm -rf "$STAGE"
 }
 trap cleanup EXIT
@@ -48,11 +49,13 @@ codesign --force --sign "$IDENTITY" --timestamp "$STAGE/Sofa.dmg"
 codesign --verify --strict "$STAGE/Sofa.dmg"
 hdiutil verify "$STAGE/Sofa.dmg"
 hdiutil attach -readonly -nobrowse -mountpoint "$STAGE/mount" "$STAGE/Sofa.dmg"
+ATTACHED=true
 codesign --verify --deep --strict "$STAGE/mount/Sofa.app"
 cmp "$APP/Contents/MacOS/Sofa" "$STAGE/mount/Sofa.app/Contents/MacOS/Sofa"
 [[ "$(readlink "$STAGE/mount/Applications")" == /Applications ]]
 [[ -f "$STAGE/mount/Install Sofa.txt" ]]
 hdiutil detach "$STAGE/mount"
+ATTACHED=false
 mv "$STAGE/Sofa.dmg" "$DMG"
 (cd dist && shasum -a 256 "${DMG##*/}") > "$DMG.sha256"
 echo "Verified signed DMG preview (not notarized): $DMG"
