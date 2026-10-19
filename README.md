@@ -8,19 +8,19 @@ Sofa brings your TV’s remote, apps, inputs and volume into a small native macO
 **Beta software. macOS 26 or later · Apple silicon.** VIDAA has been tested with one Hisense A4K-series TV. Google / Android TV support in 0.4 is experimental and currently validated with a local protocol fixture, not physical Android TV hardware. Compatibility varies by model and firmware. This is independent software, not an official Hisense, VIDAA or Apple product.
 
 <p align="center">
-  <img src="docs/images/home.png" width="240" alt="Sofa Home dashboard with active TV app, volume and horizontal app shelf">
-  <img src="docs/images/remote.png" width="240" alt="Sofa glass remote with directional pad, playback and volume controls">
-  <img src="docs/images/onboarding.png" width="240" alt="Sofa first-run welcome and TV setup">
+  <img src="docs/images/home-transparent.png" width="240" alt="Sofa Home dashboard with active TV app, volume and horizontal app shelf">
+  <img src="docs/images/remote-transparent.png" width="240" alt="Sofa glass remote with directional pad, playback and volume controls">
+  <img src="docs/images/onboarding-transparent.png" width="240" alt="Sofa first-run welcome and TV setup">
 </p>
-<p align="center"><sub>Home · Remote · Setup. Native app screenshots with simulated TV state.</sub></p>
+<p align="center"><sub>Home · Remote · Setup. App previews with backgrounds removed for presentation and simulated TV state.</sub></p>
 
 ## Download
 
 Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.4.0-beta.1-build12).
 
-**Build 12 is an early, Developer ID-signed preview. Apple notarization is pending.** The ZIP includes installation instructions and the release includes a SHA-256 checksum. macOS may block the first launch. You can wait for notarization, or follow [Apple’s guidance](https://support.apple.com/en-us/102445) to use **System Settings → Privacy & Security → Open Anyway** for this beta. Do not disable Gatekeeper globally.
+**Build 12 is an early, Developer ID-signed preview. Apple notarization is pending.** The DMG includes an Applications shortcut and installation instructions; a ZIP alternative and SHA-256 checksums are also available. macOS may block the first launch. You can wait for notarization, or follow [Apple’s guidance](https://support.apple.com/en-us/102445) to use **System Settings → Privacy & Security → Open Anyway** for this beta. Do not disable Gatekeeper globally.
 
-1. Download and unzip the ZIP, then move **Sofa.app** into **Applications**.
+1. [Download the DMG](https://github.com/iamrainhard/sofa/releases/download/v0.4.0-beta.1-build12/Sofa-0.4.0-beta.1-build12-arm64-preview.dmg), open it, and drag **Sofa** onto **Applications**. Eject the disk image.
 2. Open Sofa. Its couch icon appears in your menu bar; it has no persistent Dock window.
 3. Keep your Mac and TV on the same home network. Allow Local Network access when macOS asks.
 4. Choose **Set up my TV**. Discover a nearby compatible TV or enter the private IPv4 address shown in the TV’s network settings.
