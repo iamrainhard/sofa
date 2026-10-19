@@ -24,7 +24,8 @@ struct RemoteView: View {
             header
                 .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 14)
             Group {
-                if model.viewMode == 0 { dashboard } else { fullRemote }
+                if !model.ready { disconnectedState }
+                else if model.viewMode == 0 { dashboard } else { fullRemote }
             }
             Spacer(minLength: 8)
             footer
@@ -64,7 +65,7 @@ struct RemoteView: View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(model.displayName).font(.system(size: 18, weight: .semibold, design: .rounded)).tracking(-0.3).lineLimit(1)
-                Label("Hisense · VIDAA · " + (model.powerChanging ? "Changing…" : model.powerState == .unknown ? "Unknown" : model.powerState.title), systemImage: "tv")
+                Label(model.ready ? "Hisense · VIDAA · " + (model.powerChanging ? "Changing…" : model.powerState == .unknown ? "Unknown" : model.powerState.title) : "Hisense · VIDAA", systemImage: "tv")
                     .font(.system(size: 11, weight: .medium)).foregroundStyle(Color.primary.opacity(0.62)).lineLimit(1)
             }
             Spacer(minLength: 8)
@@ -104,6 +105,45 @@ struct RemoteView: View {
             .accessibilityValue(model.powerChanging ? "Changing" : model.powerState == .unknown ? "Unknown" : model.powerState == .standby ? "Off, standby" : "On")
 
         }
+    }
+    private var disconnectedState: some View {
+        let busy = model.isBusy || model.status == "connecting"
+        let needsSetup = model.status == "trust" || model.status == "pairing"
+        let savedAddress = ConnectionInput.privateIPv4(model.host) != nil
+        return VStack(spacing: 20) {
+            Spacer(minLength: 12)
+            ZStack {
+                Circle().fill(Color.primary.opacity(0.04)).frame(width: 86, height: 86)
+                if busy { ProgressView().controlSize(.large) }
+                else { Image(systemName: needsSetup ? "link" : "tv.badge.wifi").font(.system(size: 34, weight: .light)).foregroundStyle(.secondary) }
+            }.accessibilityHidden(true)
+            VStack(spacing: 9) {
+                Text(busy ? "Connecting to your TV" : needsSetup ? "Finish connecting" : "Connect your TV")
+                    .font(.system(size: 23, weight: .semibold, design: .rounded)).multilineTextAlignment(.center)
+                Text(needsSetup ? "Verify your TV and finish pairing to enable its controls." : "Turn on your TV and keep it on the same home network as this Mac.")
+                    .font(.system(size: 12)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let error = model.error, !busy {
+                Text(error).font(.system(size: 11)).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity).padding(12)
+                    .background(Color.primary.opacity(0.045), in: .rect(cornerRadius: 14))
+            }
+            VStack(spacing: 12) {
+                if busy {
+                    Button("Cancel", action: model.disconnect).buttonStyle(.glass).buttonBorderShape(.capsule)
+                } else {
+                    Button(needsSetup ? "Continue setup" : savedAddress ? "Reconnect" : "Set up my TV") {
+                        if savedAddress && !needsSetup { model.connect() }
+                        else { model.settingsVisible = true }
+                    }.buttonStyle(.glassProminent).buttonBorderShape(.capsule).controlSize(.large)
+                    Button("Connection settings") { model.settingsVisible = true }
+                        .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 12)
+        }.padding(.horizontal, 30).frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     private var dashboard: some View {
         VStack(spacing: 0) {
@@ -176,7 +216,7 @@ struct RemoteView: View {
     }
     private var footer: some View {
         VStack(spacing: 12) {
-            if let error = model.error {
+            if let error = model.error, model.ready {
                 Button { model.settingsVisible = true } label: {
                     Label(error, systemImage: "exclamationmark.circle").font(.system(size: 10)).foregroundStyle(.orange).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                 }.buttonStyle(.plain)

@@ -13,3 +13,4 @@ First public beta preparation:
 - Preserve existing app/input shelves, native glass slider, volume rolling animation and saved pairing identifiers.
 - Clear Local Network guidance and settings shortcut; Keychain access failures no longer silently trigger new pairing.
 - Strict IP/code validation, stable connecting state, and extraction/signature/notarization checks on the packaged download.
+- Dedicated disconnected and connecting screens keep error guidance readable and the header/footer in place.

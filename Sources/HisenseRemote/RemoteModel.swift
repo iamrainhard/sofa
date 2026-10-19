@@ -155,12 +155,14 @@ final class RemoteModel: ObservableObject {
         onboardingComplete = defaults.bool(forKey: "onboardingComplete") || (!host.isEmpty && defaults.bool(forKey: "autoConnect"))
         if let previewState {
             host = "192.168.1.100"; deviceName = "Living Room TV"
-            onboardingComplete = previewState == "remote"
+            onboardingComplete = previewState == "remote" || previewState == "offline" || previewState == "connecting"
             if previewState == "remote" || previewState == "success" {
                 status = "ready"; hasVolume = true; sourceName = "Home"; volumeInteraction.report(24)
             }
             if previewState == "remote" { viewMode = 1 }
             if previewState == "pair" { status = "pairing" }
+            if previewState == "offline" { error = "The TV did not respond. Check its IP address and Local Network permission." }
+            if previewState == "connecting" { status = "connecting"; isBusy = true }
             if previewState == "network" {
                 localNetworkNeedsAttention = true
                 error = "Allow Sofa in System Settings → Privacy & Security → Local Network, then Connect again."
