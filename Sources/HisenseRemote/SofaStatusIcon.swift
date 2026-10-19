@@ -6,7 +6,6 @@ enum SofaStatusIcon {
     static func makeImage() -> NSImage {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
             NSColor.black.setStroke()
-            NSColor.black.setFill()
 
             let back = NSBezierPath()
             back.move(to: NSPoint(x: 3.5, y: 10))
@@ -19,7 +18,9 @@ enum SofaStatusIcon {
                        controlPoint1: NSPoint(x: 13.75, y: 14.5),
                        controlPoint2: NSPoint(x: 14.5, y: 13.75))
             back.line(to: NSPoint(x: 14.5, y: 10))
-            back.lineWidth = 1.4
+            back.lineWidth = 1.25
+            back.lineCapStyle = .round
+            back.lineJoinStyle = .round
             back.stroke()
 
             let front = NSBezierPath()
@@ -42,16 +43,21 @@ enum SofaStatusIcon {
                         controlPoint1: NSPoint(x: 1.5, y: 4),
                         controlPoint2: NSPoint(x: 1, y: 4.5))
             front.close()
-            front.fill()
+            front.lineWidth = 1.25
+            front.lineCapStyle = .round
+            front.lineJoinStyle = .round
+            front.stroke()
 
-            for x: CGFloat in [4.8, 9.5] {
-                NSBezierPath(roundedRect: NSRect(x: x, y: 7.8, width: 3.7, height: 1.5),
-                             xRadius: 0.65, yRadius: 0.65).fill()
+            let details = NSBezierPath()
+            details.move(to: NSPoint(x: 9, y: 7))
+            details.line(to: NSPoint(x: 9, y: 10.5))
+            for x: CGFloat in [3, 15] {
+                details.move(to: NSPoint(x: x, y: 4))
+                details.line(to: NSPoint(x: x, y: 2.5))
             }
-            for x: CGFloat in [3, 13.5] {
-                NSBezierPath(roundedRect: NSRect(x: x, y: 2.5, width: 1.5, height: 2),
-                             xRadius: 0.6, yRadius: 0.6).fill()
-            }
+            details.lineWidth = 1.25
+            details.lineCapStyle = .round
+            details.stroke()
             return true
         }
         image.isTemplate = true

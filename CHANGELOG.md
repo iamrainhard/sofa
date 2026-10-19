@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.4.0-beta.1 — development
+## Unreleased
+
+- Use an entirely stroked couch icon in the menu bar, with rounded outlines and no filled cushions or base (build 11).
+
+## 0.4.0-beta.1 — early preview
 
 - Separate VIDAA and Android TV connection adapters behind a session-scoped JSON bridge. Preserve the existing VIDAA wire implementation and Keychain namespace.
 - Experimental, brand-independent Google / Android TV Remote Service v2 support; no ADB or developer mode.
