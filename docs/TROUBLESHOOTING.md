@@ -41,3 +41,10 @@ Look for the TV icon in the menu bar, including hidden icons managed by other ut
 ## Reporting a bug
 
 Use GitHub Issues with macOS version, TV model/firmware, steps and expected/actual behavior. Redact IP addresses, serial numbers, device IDs, pairing codes and tokens. Never post Keychain exports or full protocol logs.
+
+
+## Rewind and fast-forward
+
+Sofa sends one command per press. Automatic mode uses Left/Right in YouTube on VIDAA (verified on the development TV), and native media commands elsewhere. If an app ignores its media buttons, open the remote’s **More TV controls → Rewind / fast-forward → Left / right arrows** while that app is active. Sofa remembers the choice for that TV and app. **Media buttons** explicitly restores native rewind/fast-forward; **Automatic** removes the override.
+
+Arrow seeking requires the video player/timeline to have focus. On an app’s browsing screen it can move selection instead, and some players require OK to resume. Ads, live streams without DVR and externally connected devices may not allow seeking. These options do not establish compatibility with every streaming app; both seeking directions are physically verified only in YouTube on the tested VIDAA TV so far.

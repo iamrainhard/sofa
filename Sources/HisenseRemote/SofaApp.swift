@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         model = RemoteModel()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "tv", accessibilityDescription: AppIdentity.name)
+            button.image = SofaStatusIcon.makeImage()
             button.action = #selector(togglePopover)
             button.target = self
             button.toolTip = "Sofa · Your TV, within reach"

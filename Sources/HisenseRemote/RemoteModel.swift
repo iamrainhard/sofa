@@ -12,6 +12,23 @@ final class RemoteModel: ObservableObject {
     @Published var androidIME = UserDefaults.standard.object(forKey: "androidIME") as? Bool ?? true {
         didSet { defaults.set(androidIME, forKey: "androidIME") }
     }
+    @Published private var savedSeekingModes = UserDefaults.standard.dictionary(forKey: "appSeekingModes") as? [String: String] ?? [:]
+    private var seekingPreferenceKey: String? {
+        guard let destination = activeDestination else { return nil }
+        return TVPlaybackControl.preferenceKey(platform: activePlatform, host: connectedHost.isEmpty ? host : connectedHost,
+                                               destination: destination.key)
+    }
+    var canConfigureSeeking: Bool { ready && seekingPreferenceKey != nil }
+    var seekingMode: TVSeekingMode {
+        guard let key = seekingPreferenceKey, let raw = savedSeekingModes[key] else { return .automatic }
+        return TVSeekingMode(rawValue: raw) ?? .automatic
+    }
+    func setSeekingMode(_ mode: TVSeekingMode) {
+        guard canConfigureSeeking, let key = seekingPreferenceKey else { return }
+        if mode == .automatic { savedSeekingModes.removeValue(forKey: key) }
+        else { savedSeekingModes[key] = mode.rawValue }
+        if previewState == nil { defaults.set(savedSeekingModes, forKey: "appSeekingModes") }
+    }
     var platformTitle: String { activePlatform.title }
     var canStepVolume: Bool { ready && (hasVolume || activePlatform == .androidtv) }
     @Published private var androidSliderAvailable = true
@@ -189,6 +206,7 @@ final class RemoteModel: ObservableObject {
         self.previewState = previewState ?? Bundle.main.object(forInfoDictionaryKey: "SofaPreviewState") as? String
         onboardingComplete = defaults.bool(forKey: "onboardingComplete") || (!host.isEmpty && defaults.bool(forKey: "autoConnect"))
         if let previewState = self.previewState {
+            savedSeekingModes = [:]
             host = "192.168.1.100"; deviceName = "Living Room TV"
             onboardingComplete = previewState == "remote" || previewState == "offline" || previewState == "connecting"
             if previewState == "remote" || previewState == "success" {
@@ -385,7 +403,7 @@ final class RemoteModel: ObservableObject {
         send(["action": "key", "key": key, "label": label])
     }
     func seek(forward: Bool) {
-        key(TVPlaybackControl.seekKey(forward: forward, appName: sourceName, platform: activePlatform),
+        key(TVPlaybackControl.seekKey(forward: forward, appName: sourceName, platform: activePlatform, mode: seekingMode),
             label: forward ? "Fast-forward" : "Rewind")
     }
     func beginVolumeEdit() { volumeInteraction.begin() }

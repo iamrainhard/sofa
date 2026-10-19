@@ -56,8 +56,17 @@ struct RemoteControlView: View {
                     .buttonStyle(.sofaCapsule()).help("Choose a TV input")
                 Button { keypadVisible.toggle() } label: { Label("Keypad", systemImage: "number") }
                     .buttonStyle(.sofaCapsule()).disabled(!model.ready)
-                    .popover(isPresented: $keypadVisible, arrowEdge: .top) { keypad }
+                    .popover(isPresented: $keypadVisible, arrowEdge: .bottom) { keypad }
                 Menu {
+                    Menu("Rewind / fast-forward") {
+                        Text("For \(TVPlatform(reportedName: model.sourceName, connected: model.ready).name)")
+                        Picker("Seeking controls", selection: Binding(get: { model.seekingMode }, set: model.setSeekingMode)) {
+                            ForEach(TVSeekingMode.allCases) { mode in Text(mode.title).tag(mode) }
+                        }.pickerStyle(.inline)
+                        Divider()
+                        Text("Use arrows if this app ignores media buttons.")
+                    }.disabled(!model.canConfigureSeeking)
+                    Divider()
                     Button("Subtitles", systemImage: "captions.bubble") { model.key("SUBTITLE", label: "Subtitles") }
                     Button("Stop playback", systemImage: "stop.fill") { model.key("STOP", label: "Stop") }
                     if model.activePlatform.supportsKey("EXIT") { Button("Exit app", systemImage: "rectangle.portrait.and.arrow.right") { model.key("EXIT", label: "Exit") } }
