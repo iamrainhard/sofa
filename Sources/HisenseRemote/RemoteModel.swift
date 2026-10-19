@@ -384,6 +384,10 @@ final class RemoteModel: ObservableObject {
         if previewState != nil { activity = "Preview · \(label)"; return }
         send(["action": "key", "key": key, "label": label])
     }
+    func seek(forward: Bool) {
+        key(TVPlaybackControl.seekKey(forward: forward, appName: sourceName, platform: activePlatform),
+            label: forward ? "Fast-forward" : "Rewind")
+    }
     func beginVolumeEdit() { volumeInteraction.begin() }
     func endVolumeEdit() {
         volumeInteraction.end()

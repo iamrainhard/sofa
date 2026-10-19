@@ -68,7 +68,7 @@ class StateTests(unittest.TestCase):
         self.bridge.sock.sendall.assert_not_called()
     def test_remote_key_payload_matches_vidaa_wire_protocol(self):
         self.bridge.authenticated = True
-        for key, wire_value in [('UP', b'KEY_UP'), ('HOME', b'KEY_HOME'), ('OK', b'KEY_OK'), ('RETURNS', b'KEY_RETURNS'), ('PAUSE', b'KEY_PAUSE')]:
+        for key, wire_value in [('UP', b'KEY_UP'), ('HOME', b'KEY_HOME'), ('OK', b'KEY_OK'), ('RETURNS', b'KEY_RETURNS'), ('PAUSE', b'KEY_PAUSE'), ('BACK', b'KEY_BACK'), ('FORWARDS', b'KEY_FORWARDS')] + [(str(i), f'KEY_{i}'.encode()) for i in range(10)]:
             self.bridge.command({'action': 'key', 'key': key})
             frame = self.bridge.sock.sendall.call_args[0][0]
             _, body, _ = extract(frame)

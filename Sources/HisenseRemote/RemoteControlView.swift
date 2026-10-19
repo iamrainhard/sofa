@@ -21,10 +21,10 @@ struct RemoteControlView: View {
             }
 
             HStack(spacing: 10) {
-                control("backward.fill", title: "Rewind", key: "BACK", size: 36)
+                seekControl(forward: false)
                 control("play.fill", title: "Play", key: "PLAY", size: 36)
                 control("pause.fill", title: "Pause", key: "PAUSE", size: 36)
-                control("forward.fill", title: "Fast-forward", key: "FORWARDS", size: 36)
+                seekControl(forward: true)
             }
 
             HStack(spacing: 26) {
@@ -56,7 +56,7 @@ struct RemoteControlView: View {
                     .buttonStyle(.sofaCapsule()).help("Choose a TV input")
                 Button { keypadVisible.toggle() } label: { Label("Keypad", systemImage: "number") }
                     .buttonStyle(.sofaCapsule()).disabled(!model.ready)
-                    .popover(isPresented: $keypadVisible, arrowEdge: .bottom) { keypad }
+                    .popover(isPresented: $keypadVisible, arrowEdge: .top) { keypad }
                 Menu {
                     Button("Subtitles", systemImage: "captions.bubble") { model.key("SUBTITLE", label: "Subtitles") }
                     Button("Stop playback", systemImage: "stop.fill") { model.key("STOP", label: "Stop") }
@@ -115,6 +115,14 @@ struct RemoteControlView: View {
                 }.contentShape(sector)
         }.buttonStyle(ClickpadPressStyle(sector: sector)).accessibilityLabel(title)
     }
+    private func seekControl(forward: Bool) -> some View {
+        Button { model.seek(forward: forward) } label: {
+            Image(systemName: forward ? "forward.fill" : "backward.fill")
+                .font(.system(size: 14, weight: .medium)).frame(width: 36, height: 36)
+        }.buttonStyle(.sofaCircle()).disabled(!model.ready)
+            .buttonCaption(forward ? "Fast-forward" : "Rewind")
+            .accessibilityLabel(forward ? "Fast-forward" : "Rewind")
+    }
     private func control(_ symbol: String, title: String, key: String, size: CGFloat = 44) -> some View {
         Button { model.key(key, label: title) } label: {
             Image(systemName: symbol).font(.system(size: size == 44 ? 18 : 14, weight: .medium)).frame(width: size, height: size)
@@ -133,17 +141,17 @@ struct RemoteControlView: View {
     private var keypad: some View {
         VStack(spacing: 14) {
             HStack { Text("Channel keypad").font(.headline); Spacer(); Button { keypadVisible = false } label: { Image(systemName: "xmark") }.buttonStyle(.plain).accessibilityLabel("Close keypad") }
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(52)), count: 3), spacing: 10) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 12), count: 3), spacing: 12) {
                 ForEach(["1", "2", "3", "4", "5", "6", "7", "8", "9", "—", "0", "OK"], id: \.self) { value in
-                    if value == "—" { Color.clear.frame(width: 52, height: 42) }
+                    if value == "—" { Color.clear.frame(width: 64, height: 52) }
                     else {
                         Button { model.key(value, label: value == "OK" ? "Select channel" : "Digit \(value)") } label: {
-                            Text(value).font(.system(size: 19, weight: .medium, design: .rounded)).frame(width: 44, height: 36)
+                            Text(value).font(.system(size: 19, weight: .medium, design: .rounded)).frame(width: 48, height: 44)
                         }.buttonStyle(.sofaRounded())
                     }
                 }
             }
-        }.padding(20).frame(width: 220)
+        }.frame(width: 216).padding(20)
     }
 }
 
