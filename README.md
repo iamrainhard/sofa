@@ -16,9 +16,9 @@ Sofa brings your TV’s remote, apps, inputs and volume into a small native macO
 
 ## Download
 
-Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.4.0-beta.1).
+Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.4.0-beta.1-build12).
 
-**Build 10 is an early, Developer ID-signed preview. Apple notarization is pending.** The ZIP includes installation instructions and the release includes a SHA-256 checksum. macOS may block the first launch. You can wait for notarization, or follow [Apple’s guidance](https://support.apple.com/en-us/102445) to use **System Settings → Privacy & Security → Open Anyway** for this beta. Do not disable Gatekeeper globally.
+**Build 12 is an early, Developer ID-signed preview. Apple notarization is pending.** The ZIP includes installation instructions and the release includes a SHA-256 checksum. macOS may block the first launch. You can wait for notarization, or follow [Apple’s guidance](https://support.apple.com/en-us/102445) to use **System Settings → Privacy & Security → Open Anyway** for this beta. Do not disable Gatekeeper globally.
 
 1. Download and unzip the ZIP, then move **Sofa.app** into **Applications**.
 2. Open Sofa. Its couch icon appears in your menu bar; it has no persistent Dock window.
