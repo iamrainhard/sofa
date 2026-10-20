@@ -6,7 +6,7 @@
 - Add Settings → Updates and gentle in-panel update reminders; preview bundles never start the updater.
 - Verify signed update feeds and archives before extraction. Release tooling requires notarization and verifies the published GitHub asset before advertising it.
 - Keep bundle and Keychain identities unchanged to preserve existing TV pairing.
-- Apple notarization approved. Local tests verified a signed upgrade and relaunch, rejection of a corrupted archive, and background download followed by installation on quit. All 60 Python tests and Swift checks pass.
+- Apple notarization approved. Local tests verified a signed upgrade and relaunch, rejection of a corrupted archive, and background download followed by installation on quit. All 60 Python tests and Swift checks pass. The installed notarized build reconnected to the development VIDAA TV with its existing pairing.
 
 ### Branding from build 14
 

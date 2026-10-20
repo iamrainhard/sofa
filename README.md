@@ -17,11 +17,11 @@ Sofa brings your TV’s remote, apps, inputs and volume into a small native macO
 
 ## Download
 
-Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.5.0-beta.1-build13).
+Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.6.0-beta.1-build15).
 
-**Build 13 is Developer ID signed and Apple notarized.** The DMG contains the approved app with its notarization ticket stapled, an Applications shortcut and installation instructions. The app inside the DMG and ZIP passes Gatekeeper assessment. SHA-256 checksums are included. Open Sofa normally after installing it; macOS may ask you to confirm opening a downloaded app.
+**Build 15 is Developer ID signed and Apple notarized.** The DMG contains the approved app with its notarization ticket stapled, an Applications shortcut and installation instructions. The app inside the DMG and ZIP passes Gatekeeper assessment. SHA-256 checksums are included. Open Sofa normally after installing it; macOS may ask you to confirm opening a downloaded app.
 
-1. [Download the DMG](https://github.com/iamrainhard/sofa/releases/download/v0.5.0-beta.1-build13/Sofa-0.5.0-beta.1-build13-arm64-notarized.dmg), open it, and drag **Sofa** onto **Applications**. Eject the disk image.
+1. [Download the DMG](https://github.com/iamrainhard/sofa/releases/download/v0.6.0-beta.1-build15/Sofa-0.6.0-beta.1-build15-arm64-notarized.dmg), open it, and drag **Sofa** onto **Applications**. Eject the disk image.
 2. Open Sofa. Its icon appears in your menu bar; it has no persistent Dock window.
 3. Keep your Mac and TV on the same home network. Allow Local Network access when macOS asks.
 4. Choose **Set up my TV**. Discover a nearby compatible TV or enter the private IPv4 address shown in the TV’s network settings.
@@ -99,6 +99,6 @@ See [CONTRIBUTING](CONTRIBUTING.md). Bug reports and compatibility reports are w
 Sofa source and original artwork are MIT licensed. Shared VIDAA protocol research/certificate credits and bundled runtime licenses are in [THIRD_PARTY](docs/THIRD_PARTY.txt) and `Resources/RuntimeLicenses`. Third-party app marks remain their owners’ property and are fetched at runtime, not redistributed as Sofa artwork.
 
 
-### Automatic updates (upcoming build 15)
+### Automatic updates
 
-The next beta adds native updates through Sparkle: daily checks, background downloads, installation when you quit, and **Check for Updates** in the menu. **Settings → Updates** lets you turn either automatic behavior off. Signed feeds and downloads are verified, and existing TV pairing is retained. The public build 13 download still needs manual updates; one manual upgrade to build 15 will enable future in-app updates.
+Build 15 includes native updates through Sparkle: daily checks, background downloads, installation when you quit, and **Check for Updates** in the menu. **Settings → Updates** lets you turn either automatic behavior off. Signed feeds and downloads are verified, and existing TV pairing is retained. Users on build 13 or 14 need one manual upgrade to build 15 to enable future in-app updates. The public signed feed offers only verified, notarized releases.

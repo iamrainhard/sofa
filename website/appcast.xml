@@ -1,13 +1,53 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- sparkle-sign-warning:
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- sparkle-sign-warning:
 IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
---><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
-  <channel>
-    <title>Sofa Updates</title>
-    <link>https://iamrainhard.github.io/sofa/</link>
-    <description>Signed, notarized Sofa releases for Apple silicon Macs.</description>
-    <language>en</language>
-  </channel>
-</rss><!-- sparkle-signatures:
-edSignature: YXagul15hrSx68B+BUk/Gcnf8kdiBIpcjlQ807NO00MDIa++zh84ulWSIkB3xZk+hQWGt+sJ5nIUgj7sVthHCg==
-length: 610
+-->
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Sofa Updates</title>
+        <link>https://iamrainhard.github.io/sofa/</link>
+        <description>Signed, notarized Sofa releases for Apple silicon Macs.</description>
+        <language>en</language>
+        <item>
+            <title>0.6.0-beta.1</title>
+            <pubDate>Tue, 20 Oct 2026 13:02:08 +0300</pubDate>
+            <link>https://iamrainhard.github.io/sofa/</link>
+            <sparkle:version>15</sparkle:version>
+            <sparkle:shortVersionString>0.6.0-beta.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Sofa — Your TV, from your Mac.
+
+This beta adds native automatic updates and the new Lounge Remote icon. **Build 15 is Apple notarized**, Developer ID signed by TOP NOTCH COMPANY LIMITED, and distributed with its notarization ticket stapled.
+
+### Updates that stay out of the way
+- Daily background checks and automatic downloads, with installation when Sofa quits.
+- Settings → Updates to control automatic behavior; Check for Updates in Sofa's menu and Settings for an immediate check or installation and relaunch.
+- Gentle reminders inside the menu-bar panel instead of interrupting your TV session.
+- Signed update feeds and packages, verified before extraction. Only notarized releases enter the public update feed.
+- Existing bundle and Keychain identities are preserved, so saved TV pairing carries forward.
+
+### Refreshed identity
+- Native Lounge Remote app icon with a unified remote body and subtle sofa-seat detail.
+- Matching outline-only menu-bar icon and “Your TV, from your Mac.” branding.
+
+### Installation
+Download the **DMG**, open it, drag Sofa to Applications, then open Sofa normally. Apple silicon and macOS 26 or later are required. Existing build 13/14 users need this one manual upgrade to gain automatic updates. The ZIP is also supplied for the updater and users who prefer an archive.
+
+### Validation and limits
+- Apple notarization, staple validation and Gatekeeper acceptance passed for the app extracted from the ZIP and mounted from the DMG.
+- All 60 Python tests and Swift state checks passed.
+- The actual app in an isolated test identity rejected a corrupted update without replacing itself, installed a valid signed update and relaunched, and downloaded another update silently and installed it on normal Quit. These local test packages were signed, not separately notarized.
+- The public updater's first release is build 15; a later production build will be needed to verify a public-to-public upgrade.
+- VIDAA support is tested with the development TV. Google / Android TV and Samsung Tizen remain experimental and have not been verified with physical hardware. Volume sliders appear only when supported feedback is available. Older Samsung Orsay models are not supported.
+
+Free and open source under the MIT license. No Sofa account or analytics. See docs/PRIVACY.md for update download metadata and settings.
+]]></description>
+            <enclosure url="https://github.com/iamrainhard/sofa/releases/download/v0.6.0-beta.1-build15/Sofa-0.6.0-beta.1-build15-arm64-notarized.zip" length="18234457" type="application/octet-stream" sparkle:edSignature="uXUWp8WfPai1bQRLiXDA8/iL9dE6lOQ5/SeBAtTkz6xHt+BIOGicObIpxR0HUFUtiDnOFLdW7IDPOIIsYQieCw=="/>
+        </item>
+    </channel>
+</rss>
+<!-- sparkle-signatures:
+edSignature: 6mxipBLA+ZrdefRsfS+11HaNNSj+Qyay+Nq1Ejq8n/TiHmoNN9juutRJT1b/MsfU7CDAp+pnG5TJvWm15qjVAA==
+length: 3865
 -->
