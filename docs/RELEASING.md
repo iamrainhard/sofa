@@ -28,8 +28,8 @@ Keep a separate archive path for every submitted build. The upload script refuse
    xcodebuild -exportNotarizedApp -archivePath build/Sofa-build13.xcarchive -exportPath build/notarized-build13
    ```
 
-6. Run `bash scripts/package.sh`. This refuses to package an app without a valid staple and successful Gatekeeper assessment, then extracts the ZIP and repeats those checks on the actual download. If Xcode exports a differently named folder, pass its app path to the script.
-7. Commit reviewed source, tag the release, then upload the ZIP and SHA-256 file to a GitHub **prerelease** with compatibility limits and actual validation evidence.
+6. Run `bash scripts/package.sh build/notarized-build13/Sofa.app` for the ZIP and `SOFA_SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)' bash scripts/package-dmg.sh build/notarized-build13/Sofa.app` for the signed DMG containing the notarized app. This refuses to package an app without a valid staple and successful Gatekeeper assessment, then extracts the ZIP or mounts the DMG and repeats those checks on the packaged app. Both produce version/build-specific `notarized` filenames and SHA-256 files and refuse to overwrite an existing artifact. If Xcode exports a differently named folder, pass its app path to the script.
+7. Commit reviewed source, tag the release, then upload the DMG, ZIP and their SHA-256 files to a GitHub **prerelease** with compatibility limits and actual validation evidence.
 
 An alternative is `xcrun notarytool submit` using a private Keychain profile configured interactively by the account owner. Do not put Apple passwords, signing certificates with private keys, API keys or tokens in command history, issue reports, CI logs or repository secrets without separately agreeing on a CI signing setup.
 

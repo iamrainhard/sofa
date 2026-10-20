@@ -18,9 +18,9 @@ Sofa brings your TV’s remote, apps, inputs and volume into a small native macO
 
 Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.5.0-beta.1-build13).
 
-**Build 13 is an early, Developer ID-signed preview. Apple notarization is pending.** The DMG includes an Applications shortcut and installation instructions; a ZIP alternative and SHA-256 checksums are also available. macOS may block the first launch. You can wait for notarization, or follow [Apple’s guidance](https://support.apple.com/en-us/102445) to use **System Settings → Privacy & Security → Open Anyway** for this beta. Do not disable Gatekeeper globally.
+**Build 13 is Developer ID signed and Apple notarized.** The DMG contains the approved app with its notarization ticket stapled, an Applications shortcut and installation instructions. The app inside the DMG and ZIP passes Gatekeeper assessment. SHA-256 checksums are included. Open Sofa normally after installing it; macOS may ask you to confirm opening a downloaded app.
 
-1. [Download the DMG](https://github.com/iamrainhard/sofa/releases/download/v0.5.0-beta.1-build13/Sofa-0.5.0-beta.1-build13-arm64-preview.dmg), open it, and drag **Sofa** onto **Applications**. Eject the disk image.
+1. [Download the DMG](https://github.com/iamrainhard/sofa/releases/download/v0.5.0-beta.1-build13/Sofa-0.5.0-beta.1-build13-arm64-notarized.dmg), open it, and drag **Sofa** onto **Applications**. Eject the disk image.
 2. Open Sofa. Its couch icon appears in your menu bar; it has no persistent Dock window.
 3. Keep your Mac and TV on the same home network. Allow Local Network access when macOS asks.
 4. Choose **Set up my TV**. Discover a nearby compatible TV or enter the private IPv4 address shown in the TV’s network settings.

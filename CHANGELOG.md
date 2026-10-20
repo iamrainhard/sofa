@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.5.0-beta.1 — build 13 early preview
+## 0.5.0-beta.1 — build 13 notarized beta
+
+- Apple notarization approved; distribute the approved, stapled app in a signed DMG and ZIP, with Gatekeeper and checksum verification.
 
 - Add experimental Samsung Tizen secure WebSocket control, SSDP discovery and manual setup.
 - Pair by choosing Allow on the TV; save the token in a separate Keychain namespace and pin the TV certificate before sending it.
