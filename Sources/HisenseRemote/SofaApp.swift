@@ -29,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             button.image = SofaStatusIcon.makeImage()
             button.action = #selector(togglePopover)
             button.target = self
-            button.toolTip = "Sofa · Your TV, within reach"
+            button.toolTip = "Sofa · Your TV, from your Mac."
             button.setAccessibilityLabel("Open Sofa TV remote")
         }
         popover = NSPopover()

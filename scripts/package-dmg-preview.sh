@@ -25,7 +25,7 @@ Sofa $VERSION (build $BUILD) — early beta
 macOS 26 or later. Apple silicon (M-series) Mac.
 
 Drag Sofa to Applications, then eject this disk image.
-Open Sofa from Applications. Look for the couch in your menu bar.
+Open Sofa from Applications. Look for the remote icon in your menu bar.
 Keep your Mac and TV on the same network and allow Local Network access.
 Choose Set up my TV and follow the pairing instructions.
 

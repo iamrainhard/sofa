@@ -25,7 +25,7 @@ Installation:
    System Settings > Privacy & Security > Open Anyway for Sofa.
    See Apple's guidance: https://support.apple.com/en-us/102445
    Do not disable Gatekeeper globally or remove quarantine in Terminal.
-3. Find Sofa's couch icon in the menu bar.
+3. Find Sofa's remote icon in the menu bar.
 4. Keep your Mac and TV on the same network. Allow Local Network access.
 5. Choose Set up my TV and follow the on-TV pairing instructions.
 

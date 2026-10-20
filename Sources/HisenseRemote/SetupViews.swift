@@ -14,7 +14,7 @@ struct OnboardingView: View {
             if !started && (model.previewState == nil || model.previewState == "welcome") && !model.ready {
                 VStack(spacing: 8) {
                     Text("Meet Sofa.").font(.system(size: 32, weight: .semibold, design: .rounded))
-                    Text("Your TV. Within reach.").font(.title3).foregroundStyle(.secondary)
+                    Text("Your TV, from your Mac.").font(.title3).foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 22) {
                     benefit("menubar.rectangle", "A little remote, always nearby", "Lives quietly in your Mac’s menu bar.")
@@ -31,7 +31,7 @@ struct OnboardingView: View {
                     Text("Your Mac is paired with your TV.").foregroundStyle(.secondary)
                 }
                 TextField("Give your TV a name (optional)", text: $model.nickname).textFieldStyle(.roundedBorder)
-                Text("You’ll find Sofa under the couch icon in your menu bar. You can change startup preferences in Settings.")
+                Text("You’ll find Sofa under the remote icon in your menu bar. You can change startup preferences in Settings.")
                     .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 if let warning = model.credentialWarning { Text(warning).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true) }
                 Button("Open Sofa") { model.completeSetup() }.buttonStyle(.sofaCapsule(prominent: true)).controlSize(.large)
@@ -180,7 +180,7 @@ struct SofaSettingsView: View {
                 }.toggleStyle(.switch)
             } else {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 88, height: 88)
-                VStack(spacing: 5) { Text("Sofa").font(.largeTitle.bold()); Text("Your TV. Within reach.").foregroundStyle(.secondary); Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.0") · Beta").font(.caption).foregroundStyle(.secondary) }
+                VStack(spacing: 5) { Text("Sofa").font(.largeTitle.bold()); Text("Your TV, from your Mac.").foregroundStyle(.secondary); Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.0") · Beta").font(.caption).foregroundStyle(.secondary) }
                 HStack { Link("GitHub", destination: URL(string: "https://github.com/iamrainhard/sofa")!); Link("Check for updates", destination: URL(string: "https://github.com/iamrainhard/sofa/releases")!) }
                 HStack { Link("Privacy", destination: URL(string: "https://github.com/iamrainhard/sofa/blob/main/docs/PRIVACY.md")!); Link("Help", destination: URL(string: "https://github.com/iamrainhard/sofa/blob/main/docs/TROUBLESHOOTING.md")!) }
                 Text("Free and open source. Made by Rainhard Ngambiye.\nIndependent software, not affiliated with TV manufacturers or platform owners.").font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — build 14
+
+- Keep the Sofa name and introduce “Your TV, from your Mac.” across onboarding, About and public branding.
+- Apply the native Lounge Remote icon with a unified body and inset seat detail, plus an outline-only menu-bar symbol matching the website.
+- Refresh the website icon and social preview card. TV control and pairing behavior are unchanged.
+
 ## 0.5.0-beta.1 — build 13 notarized beta
 
 - Apple notarization approved; distribute the approved, stapled app in a signed DMG and ZIP, with Gatekeeper and checksum verification.

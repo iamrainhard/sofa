@@ -19,7 +19,7 @@ struct TVPlatform {
         var width: CGFloat = 140
 
         if !connected {
-            name = "Your TV, within reach"
+            name = "Your TV, from your Mac."
             symbol = "tv"
         } else {
             switch key {
