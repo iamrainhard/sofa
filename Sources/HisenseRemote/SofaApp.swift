@@ -10,7 +10,10 @@ enum AppIdentity {
 @main
 struct SofaApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    var body: some Scene { Settings { EmptyView() } }
+    var body: some Scene {
+        Settings { EmptyView() }
+            .commands { CommandGroup(after: .appInfo) { SofaUpdateCommand() } }
+    }
 }
 
 @MainActor
@@ -39,7 +42,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         popover.contentSize = AppIdentity.panelSize
         popover.contentViewController = NSHostingController(rootView: RemoteView(model: model))
         // The status item's view must be attached to the menu bar before anchoring.
-        DispatchQueue.main.async { [weak self] in self?.showPopover() }
+        DispatchQueue.main.async { [weak self] in
+            self?.showPopover()
+            SofaUpdater.shared.start()
+        }
     }
 
     @objc func togglePopover() {

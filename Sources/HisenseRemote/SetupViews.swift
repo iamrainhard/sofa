@@ -42,6 +42,7 @@ struct OnboardingView: View {
             HStack {
                 Text("SOFA  ·  BETA").font(.system(size: 9, weight: .semibold)).tracking(1.6).foregroundStyle(.tertiary)
                 Spacer()
+                Button("Settings") { model.settingsVisible = true }.buttonStyle(.plain).font(.caption).foregroundStyle(.secondary)
                 Button("Quit") { NSApp.terminate(nil) }.buttonStyle(.plain).font(.caption).foregroundStyle(.secondary)
             }
         }.padding(28)
@@ -149,7 +150,7 @@ struct SofaSettingsView: View {
     var body: some View {
         VStack(spacing: 22) {
             HStack { Text("Sofa settings").font(.title2.bold()); Spacer(); Button("Done") { dismiss() }.keyboardShortcut(.defaultAction) }
-            Picker("Settings section", selection: $tab) { Text("TV").tag(0); Text("General").tag(1); Text("About").tag(2) }.pickerStyle(.segmented).labelsHidden()
+            Picker("Settings section", selection: $tab) { Text("TV").tag(0); Text("General").tag(1); Text("Updates").tag(2); Text("About").tag(3) }.pickerStyle(.segmented).labelsHidden()
             if tab == 0 {
                 if model.ready {
                     Image(systemName: "tv").font(.system(size: 42)).foregroundStyle(.secondary)
@@ -178,10 +179,12 @@ struct SofaSettingsView: View {
                     Label("Pairing is stored in your Mac’s Keychain.", systemImage: "lock.shield").font(.callout)
                     Text("No analytics or Sofa account. App artwork is fetched from VIDAA’s image service and cached on this Mac.").font(.caption).foregroundStyle(.secondary)
                 }.toggleStyle(.switch)
+            } else if tab == 2 {
+                SofaUpdatesView()
             } else {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 88, height: 88)
                 VStack(spacing: 5) { Text("Sofa").font(.largeTitle.bold()); Text("Your TV, from your Mac.").foregroundStyle(.secondary); Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.0") · Beta").font(.caption).foregroundStyle(.secondary) }
-                HStack { Link("GitHub", destination: URL(string: "https://github.com/iamrainhard/sofa")!); Link("Check for updates", destination: URL(string: "https://github.com/iamrainhard/sofa/releases")!) }
+                HStack { Link("GitHub", destination: URL(string: "https://github.com/iamrainhard/sofa")!); Button("Check for updates") { tab = 2 } }
                 HStack { Link("Privacy", destination: URL(string: "https://github.com/iamrainhard/sofa/blob/main/docs/PRIVACY.md")!); Link("Help", destination: URL(string: "https://github.com/iamrainhard/sofa/blob/main/docs/TROUBLESHOOTING.md")!) }
                 Text("Free and open source. Made by Rainhard Ngambiye.\nIndependent software, not affiliated with TV manufacturers or platform owners.").font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             }

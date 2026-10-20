@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased — build 14
+## 0.6.0-beta.1 — build 15 notarized beta
+
+- Add native Sparkle updates with daily checks, background downloads, installation on quit, and manual Check for Updates.
+- Add Settings → Updates and gentle in-panel update reminders; preview bundles never start the updater.
+- Verify signed update feeds and archives before extraction. Release tooling requires notarization and verifies the published GitHub asset before advertising it.
+- Keep bundle and Keychain identities unchanged to preserve existing TV pairing.
+- Apple notarization approved. Local tests verified a signed upgrade and relaunch, rejection of a corrupted archive, and background download followed by installation on quit. All 60 Python tests and Swift checks pass.
+
+### Branding from build 14
 
 - Keep the Sofa name and introduce “Your TV, from your Mac.” across onboarding, About and public branding.
 - Apply the native Lounge Remote icon with a unified body and inset seat detail, plus an outline-only menu-bar symbol matching the website.

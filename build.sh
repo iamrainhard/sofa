@@ -10,7 +10,16 @@ APP="$PWD/build/Sofa.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/Sofa "$APP/Contents/MacOS/Sofa"
-mkdir -p "$APP/Contents/Helpers"
+mkdir -p "$APP/Contents/Helpers" "$APP/Contents/Frameworks"
+SPARKLE_FRAMEWORK=$(python3 - <<'PYSPARKLE'
+from pathlib import Path
+frameworks = list(Path(".build/artifacts").glob("sparkle/Sparkle/Sparkle.xcframework/macos-*/Sparkle.framework"))
+if len(frameworks) != 1:
+    raise SystemExit("Expected exactly one resolved macOS Sparkle framework")
+print(frameworks[0])
+PYSPARKLE
+)
+ditto "$SPARKLE_FRAMEWORK" "$APP/Contents/Frameworks/Sparkle.framework"
 ditto build/helper/SofaBridge.app "$APP/Contents/Helpers/SofaBridge.app"
 xcrun actool Resources/Sofa.icon --compile "$APP/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --app-icon Sofa --output-partial-info-plist build/icon-info.plist --output-format human-readable-text
 cp docs/THIRD_PARTY.txt "$APP/Contents/Resources/THIRD_PARTY.txt"
@@ -20,12 +29,13 @@ python3 - <<'PY'
 import plistlib
 from pathlib import Path
 p=Path('build/Sofa.app/Contents/Info.plist')
-d=dict(CFBundleExecutable='Sofa',CFBundleIdentifier='com.rain.luma-remote',CFBundleName='Sofa',CFBundleDisplayName='Sofa',CFBundleVersion='14',CFBundleShortVersionString='0.5.0-beta.1',CFBundlePackageType='APPL',LSMinimumSystemVersion='26.0',LSUIElement=True,NSHighResolutionCapable=True,NSLocalNetworkUsageDescription='Sofa connects to your TV on your home network for discovery, remote controls and pairing.',NSBonjourServices=['_androidtvremote2._tcp'])
+d=dict(CFBundleExecutable='Sofa',CFBundleIdentifier='com.rain.luma-remote',CFBundleName='Sofa',CFBundleDisplayName='Sofa',CFBundleVersion='15',CFBundleShortVersionString='0.6.0-beta.1',CFBundlePackageType='APPL',LSMinimumSystemVersion='26.0',LSUIElement=True,NSHighResolutionCapable=True,NSLocalNetworkUsageDescription='Sofa connects to your TV on your home network for discovery, remote controls and pairing.',NSBonjourServices=['_androidtvremote2._tcp'])
 d.update(plistlib.loads(Path('build/icon-info.plist').read_bytes()))
+d.update(plistlib.loads(Path('Resources/Updater.plist').read_bytes()))
 p.write_bytes(plistlib.dumps(d))
 h=Path('build/Sofa.app/Contents/Helpers/SofaBridge.app/Contents/Info.plist')
 helper=plistlib.loads(h.read_bytes())
-helper.update(CFBundleIdentifier='com.rain.sofa.bridge',CFBundleVersion='14',CFBundleShortVersionString='0.5.0',LSUIElement=True,NSLocalNetworkUsageDescription=d['NSLocalNetworkUsageDescription'])
+helper.update(CFBundleIdentifier='com.rain.sofa.bridge',CFBundleVersion='15',CFBundleShortVersionString='0.6.0',LSUIElement=True,NSLocalNetworkUsageDescription=d['NSLocalNetworkUsageDescription'])
 h.write_bytes(plistlib.dumps(helper))
 PY
 SIGNING_IDENTITY="${SOFA_SIGNING_IDENTITY:--}"

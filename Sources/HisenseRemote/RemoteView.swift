@@ -4,6 +4,7 @@ private let ice = Color.accentColor
 
 struct RemoteView: View {
     @ObservedObject var model: RemoteModel
+    @ObservedObject private var updater = SofaUpdater.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
@@ -239,6 +240,12 @@ struct RemoteView: View {
                     Label(error, systemImage: "exclamationmark.circle").font(.system(size: 10)).foregroundStyle(.orange).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                 }.buttonStyle(.plain)
             }
+            if let version = updater.availableVersion {
+                Button { updater.checkForUpdates() } label: {
+                    Label("Sofa \(version) is available", systemImage: "arrow.down.circle")
+                        .font(.system(size: 11, weight: .medium))
+                }.buttonStyle(.sofaCapsule()).disabled(!updater.canCheck)
+            }
             Rectangle().fill(Color.primary.opacity(0.09)).frame(height: 1)
             HStack(spacing: 7) {
                 Circle().fill(model.ready ? .green : model.hasVolume ? .orange : .gray).frame(width: 6, height: 6)
@@ -257,6 +264,8 @@ struct RemoteView: View {
                     }.disabled(!model.ready)
                     Divider()
                     Button("Refresh TV", systemImage: "arrow.clockwise") { model.refresh() }
+                    Divider()
+                    Button(updater.availableVersion == nil ? "Check for Updates…" : "Update Available…", systemImage: "arrow.triangle.2.circlepath") { updater.checkForUpdates() }.disabled(!updater.canCheck)
                     Divider()
                     Button("Quit Sofa", systemImage: "power") { NSApp.terminate(nil) }.keyboardShortcut("q")
                 } label: { Image(systemName: "ellipsis").frame(width: 22, height: 28) }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().buttonCaption("More options")

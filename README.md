@@ -97,3 +97,8 @@ See [CONTRIBUTING](CONTRIBUTING.md). Bug reports and compatibility reports are w
 ## License and credits
 
 Sofa source and original artwork are MIT licensed. Shared VIDAA protocol research/certificate credits and bundled runtime licenses are in [THIRD_PARTY](docs/THIRD_PARTY.txt) and `Resources/RuntimeLicenses`. Third-party app marks remain their owners’ property and are fetched at runtime, not redistributed as Sofa artwork.
+
+
+### Automatic updates (upcoming build 15)
+
+The next beta adds native updates through Sparkle: daily checks, background downloads, installation when you quit, and **Check for Updates** in the menu. **Settings → Updates** lets you turn either automatic behavior off. Signed feeds and downloads are verified, and existing TV pairing is retained. The public build 13 download still needs manual updates; one manual upgrade to build 15 will enable future in-app updates.

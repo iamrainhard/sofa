@@ -55,3 +55,8 @@ WebSocket transport: websocket-client 1.9.2 (Apache-2.0),
 https://github.com/websocket-client/websocket-client
 The original license is included under RuntimeLicenses/websocket-client-LICENSE.txt.
 Samsung and Tizen are trademarks of their respective owners. No affiliation or endorsement.
+
+Sparkle 2.10.0 — native macOS software updates
+https://sparkle-project.org/
+Copyright Sparkle contributors. MIT license and bundled third-party notices:
+RuntimeLicenses/Sparkle-LICENSE.txt

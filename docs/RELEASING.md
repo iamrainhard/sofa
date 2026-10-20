@@ -48,3 +48,32 @@ When Apple accepts the submitted archive, export, staple and verify it with the 
 ## Website
 
 Static source is in `website/`. `bash scripts/build-site.sh` stages it with the approved screenshots in `build/site/`. The Publish website workflow deploys that folder to GitHub Pages. Keep version, download URL, compatibility and notarization status aligned with the release notes.
+
+
+## Automatic updates (build 15 onward)
+
+Sofa embeds pinned Sparkle 2.10.0. Settings → Updates controls daily checks and automatic downloads, both initially enabled. Downloads install on quit; manual checks offer installation and relaunch. Scheduled prompts become a gentle reminder inside Sofa. There is no Dock icon or notification permission. Preview bundles never start Sparkle.
+
+`Resources/Updater.plist` contains the public Ed25519 key and HTTPS feed URL. The private key is in the release Mac's login Keychain under account `com.rain.sofa.sparkle`. Never export it into source, CI, or logs. Keep the release Mac's Keychain safely backed up. Forks must generate their own key, update their feed and bundle identity, and adjust the release-script repository/team settings.
+
+1. Resolve dependencies with `swift package resolve`. Sparkle's official tools are in `.build/artifacts/sparkle/Sparkle/bin/`.
+2. Follow the signed build, Apple notarization and packaging steps above. Keep `CFBundleVersion` strictly increasing. The ZIP must contain the exact notarized `Sofa.app`.
+3. Publish the GitHub release and upload the ZIP/DMG and checksums **before** changing the feed. The ZIP powers automatic updates; the website continues to offer the DMG for first installation.
+4. Save reviewed release notes as a local Markdown file, then run:
+
+   ```sh
+   python3 scripts/update-feed.py dist/Sofa-0.6.0-beta.1-build15-arm64-notarized.zip --notes build/release-notes-build15.md
+   ```
+
+   This verifies the actual archived app's identity, public key, Developer ID team, notarization staple and Gatekeeper acceptance. It requires the GitHub asset's size and SHA-256 to match, generates the appcast with Sparkle, and verifies both feed and archive signatures. Draft releases, previews, duplicate/older build numbers and mismatched downloads are rejected. Optional `SPARKLE_TOOLS` may point at the official distribution's `bin` folder. No unsigned fallback is permitted.
+5. Review and commit `website/appcast.xml`, then deploy through the existing GitHub Pages workflow. Do not edit the signed XML manually. `scripts/build-site.sh` copies it byte for byte.
+6. Verify the live feed with `sign_update --account com.rain.sofa.sparkle --verify downloaded-appcast.xml`; exercise Check for Updates in a real installed app. For an actual upgrade test, use an isolated older build and record download, signature validation, replacement, relaunch and saved-pairing behavior separately.
+
+An empty signed feed is valid while the first updater-enabled release awaits notarization. It offers no update and must not be described as a completed upgrade test. Users on older builds need one manual DMG installation to receive the updater. A release is not automatically published merely by committing source.
+
+
+### Local updater regression test
+
+`SOFA_SIGNING_IDENTITY='Developer ID Application: …' python3 scripts/prepare-update-lab.py` creates two separately signed copies under `build/update-lab`. They use `com.rain.sofa.updater-lab`, a loopback feed, and no saved TV address. Serve `build/update-lab/packages` on port 8771, then open `build/update-lab/installed/Sofa Update Test.app` and use Settings → Updates. Verify the installed test bundle advances from build 1 to build 2 and relaunches. Preserve the test directory as evidence; the script refuses to overwrite it.
+
+For rejection testing, retain an untouched archive outside the served folder, flip one byte of the served ZIP without changing its length or signed feed, then attempt the update. It must report an invalid signature and leave build 1 installed. Restore the untouched ZIP and retry. For automatic installation, enable both update toggles, quit, prepare a new signed test build/feed, reset only the lab domain's `SULastCheckTime`, and relaunch: the download should complete without a window; quitting should install it. These lab packages are signed but not notarized and must never be published. The release script rejects their bundle identity.
