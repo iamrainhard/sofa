@@ -1,6 +1,6 @@
 # Discovery and pairing — build 16
 
-Release status, 2026-10-26. Sofa 1.0.0 build 16 is Developer ID signed and Apple notarization accepted. The signed DMG, updater ZIP and SHA-256 files are published as the stable v1.0.0-build16 GitHub release. Both packaged apps passed staple and Gatekeeper checks. GitHub’s clean-machine build and checks also passed. Website and signed-feed deployment, followed by an installed upgrade test, are in progress. The earlier beta-labelled build 16 archive is retained but will not be published.
+Release status, 2026-10-26. Sofa 1.0.0 build 16 is Developer ID signed and Apple notarization accepted. The signed DMG, updater ZIP and SHA-256 files are published as the stable v1.0.0-build16 GitHub release. Both packaged apps passed staple and Gatekeeper checks. GitHub’s clean-machine build and checks also passed. The website and signed update feed are live. The live feed signature was verified and its bytes match the generated feed. A real public build 15 installation detected 1.0.0, downloaded it from GitHub, installed and relaunched as build 16. The installed app/helper match the released package, pass notarization and Gatekeeper checks, and reconnect to the VIDAA TV with the original pairing. No new TV code was required. The earlier beta-labelled build 16 archive is retained but will not be published.
 
 ## Implemented
 
