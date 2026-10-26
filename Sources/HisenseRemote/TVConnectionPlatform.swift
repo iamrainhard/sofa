@@ -44,4 +44,6 @@ struct DiscoveredTV: Identifiable {
     let name: String
     let model: String
     var platform: TVConnectionPlatform = .vidaa
+    var identity: String = ""
+    var fingerprint: String = ""
 }

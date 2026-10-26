@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Platform-neutral JSON-lines entry point. VIDAA wire code remains in bridge.py."""
 import json
+import concurrent.futures
 import queue
 import signal
 import sys
 import threading
 
-from bridge import Bridge, discover_devices
+from bridge import Bridge
+from tv_discovery import discover, inspect_candidate
 
 
 class Controller:
@@ -19,6 +21,10 @@ class Controller:
         self.vidaa_factory = vidaa_factory
         self.android_factory = android_factory
         self.samsung_factory = samsung_factory
+        self.discovery_cancel = threading.Event()
+        self.discovery_token = None
+        self.inspections = set()
+        self.inspection_pool = concurrent.futures.ThreadPoolExecutor(max_workers=8)
 
     def event(self, value, session):
         with self.lock:
@@ -34,25 +40,39 @@ class Controller:
 
     def command(self, command):
         action = command.get('action')
+        if action == 'cancel_discovery':
+            self.discovery_cancel.set()
+            self.discovery_token = None
+            return
         if action == 'discover':
+            self.discovery_cancel.set()
+            cancel = threading.Event()
+            self.discovery_cancel = cancel
             token = command.get('discovery')
-            def discover():
+            self.discovery_token = token
+            self.inspections = set()
+            def found(value):
+                if not cancel.is_set():
+                    self.emit(dict(event='discovery', discovery=token, devices=[value]))
+            threading.Thread(target=discover, args=(command.get('interfaces', []), found, cancel), daemon=True).start()
+            return
+        if action == 'inspect_device':
+            token = command.get('discovery')
+            key = (command.get('host'), command.get('platform'), command.get('identity', ''))
+            if token != self.discovery_token or key in self.inspections or len(self.inspections) >= 48:
+                return
+            self.inspections.add(key)
+            cancel = self.discovery_cancel
+            def inspect():
+                if cancel.is_set():
+                    return
                 try:
-                    devices = [dict(tv, platform='vidaa') for tv in discover_devices()]
-                except OSError:
-                    devices = []
-                with self.lock:
-                    self.emit(dict(event='discovery', discovery=token, devices=devices))
-            threading.Thread(target=discover, daemon=True).start()
-            def discover_samsung():
-                try:
-                    from samsung_network import discover_devices as samsung_discover
-                    devices = samsung_discover()
+                    value = inspect_candidate(*key, name=command.get('name', ''))
+                    if not cancel.is_set():
+                        self.emit(dict(event='discovery', discovery=token, devices=[value]))
                 except Exception:
-                    devices = []
-                with self.lock:
-                    self.emit(dict(event='discovery', discovery=token, devices=devices))
-            threading.Thread(target=discover_samsung, daemon=True).start()
+                    pass
+            self.inspection_pool.submit(inspect)
             return
         if action == 'disconnect':
             self.close()

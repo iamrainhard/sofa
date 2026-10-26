@@ -23,7 +23,7 @@ mkdir -p "$STAGE/content" "$STAGE/mount" dist
 ditto "$APP" "$STAGE/content/Sofa.app"
 ln -s /Applications "$STAGE/content/Applications"
 cat > "$STAGE/content/Install Sofa.txt" <<TEXT
-Sofa $VERSION (build $BUILD) — notarized beta
+Sofa $VERSION (build $BUILD) — notarized release
 macOS 26 or later. Apple silicon (M-series) Mac.
 
 Drag Sofa to Applications, then eject this disk image.

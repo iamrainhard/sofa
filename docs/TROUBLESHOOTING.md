@@ -10,6 +10,18 @@ The setup screen includes **Open Privacy & Security settings**. In that pane, ch
 
 If you previously used a development build and the signed beta cannot connect despite that switch being on, quit Sofa, turn its Local Network switch off, reopen Sofa, then turn that same switch on again. This resolved a stale permission after changing signing identities during beta testing. Leave other apps’ permissions unchanged.
 
+## Address changes and automatic recovery (build 16)
+
+Once a paired TV connects on build 16, Sofa learns its stable discovery identifiers and approved certificate. If DHCP changes its address, Sofa searches again and reconnects using the original Keychain pairing. Existing Keychain items are retained in place; their old IP-shaped account names are storage keys, not the TV's current address. Forget this TV removes the selected identity record and its pairing. App-specific playback preferences follow the same saved pairing.
+
+Discovery sends two bounded SSDP search rounds on active private IPv4 multicast interfaces, including `ssdp:all` so VIDAA's Netflix/MDX announcements are recognized. Native Bonjour searches Android Remote Service, Google Cast, AirPlay and Samsung service advertisements. Cast/AirPlay advertisements alone do not establish remote compatibility: Sofa checks the supported TLS remote endpoint. Optional metadata failures do not hide a working endpoint when it can be verified. Candidates appear as checks finish.
+
+Lost connections retry with backoff (5, 10, 20, 40, then 60 seconds between attempts). Each discovery round lasts up to 11 seconds; connection probes add their own timeout. Wake and network-path changes trigger a new connection attempt. Explicit disconnect, Forget, certificate approval, pairing, and denied Local Network access stop automatic recovery as appropriate. The reconnect-on-launch preference continues to control launch behavior.
+
+Automatic address migration requires a previously learned device identifier plus the approved certificate. Friendly names, models, and certificates alone are not migration identifiers. Duplicate identity matches at different new addresses are not selected automatically. The adapter rechecks the certificate on the actual authenticated connection. A changed certificate requires approval; a TV that revoked its token still requires pairing. If upgrading while the old address is already unreachable and Sofa has never learned the TV identity, select and verify the TV once.
+
+Discovery cannot cross client isolation, a guest network firewall, or missing macOS Local Network permission. Sleeping TVs may not advertise. Unsupported generic Android TVs without Android TV Remote Service remain unsupported. This release uses private IPv4; IPv6-only networks are not supported. Samsung and Android hardware coverage remains experimental.
+
 ## Pairing fails
 
 Check the TV address. Show a fresh code on the TV. VIDAA codes are numeric; Android TV codes are exactly six characters and may contain A–F. In Sofa Settings, choose Pair again if an old token has stopped working. A changed certificate requires you to verify the TV before trusting it again. Do not accept an unexpected certificate merely to dismiss the prompt.

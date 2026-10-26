@@ -108,7 +108,7 @@ class SamsungAdapter:
                     except Exception:
                         if command.get('action') == 'connect':
                             self._drop()
-                            self.event('error', message='Samsung did not connect. Keep the TV awake on the same network and enable external device connections. This beta requires Tizen’s secure remote service.', disconnected=True)
+                            self.event('error', message='Samsung did not connect. Keep the TV awake on the same network and enable external device connections. Sofa requires Tizen’s secure remote service.', disconnected=True)
                         else:
                             self.event('error', message='Samsung did not accept that command. Try again or reconnect.')
                 if self.closed.is_set():

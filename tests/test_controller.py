@@ -66,3 +66,38 @@ class ControllerTests(unittest.TestCase):
             self.controller.command(dict(action='key', key='HOME', session=session))
             active.command.assert_called_once()
         self.controller.close()
+
+class DiscoveryRoutingTests(unittest.TestCase):
+    def test_cancel_and_new_scan_discard_late_results(self):
+        from unittest.mock import patch
+        jobs = []
+        class Thread:
+            def __init__(self, target, args=(), **kwargs): jobs.append((target, args))
+            def start(self): pass
+        events = []
+        controller = Controller(events.append)
+        with patch('controller.threading.Thread', Thread), patch('controller.discover') as discover:
+            controller.command(dict(action='discover', discovery='old', interfaces=[]))
+            oldtarget, oldargs = jobs[-1]
+            controller.command(dict(action='discover', discovery='new', interfaces=[]))
+            newtarget, newargs = jobs[-1]
+            oldargs[1]({'host': '192.168.1.2'})
+            self.assertEqual(events, [])
+            newargs[1]({'host': '192.168.1.3'})
+            self.assertEqual(events[0]['discovery'], 'new')
+            controller.command(dict(action='cancel_discovery'))
+            newargs[1]({'host': '192.168.1.4'})
+            self.assertEqual(len(events), 1)
+        controller.inspection_pool.shutdown()
+
+    def test_unrelated_or_duplicate_candidate_is_not_probed(self):
+        from unittest.mock import patch
+        controller = Controller(lambda value: None)
+        controller.discovery_token = 'scan'
+        with patch.object(controller.inspection_pool, 'submit') as submit:
+            command = dict(action='inspect_device', discovery='old', host='192.168.1.2', platform='androidtv', identity='bonjour:TV')
+            controller.command(command); submit.assert_not_called()
+            command['discovery'] = 'scan'
+            controller.command(command); controller.command(command)
+            self.assertEqual(submit.call_count, 1)
+        controller.inspection_pool.shutdown()

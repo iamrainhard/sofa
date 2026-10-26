@@ -183,7 +183,7 @@ struct SofaSettingsView: View {
                 SofaUpdatesView()
             } else {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 88, height: 88)
-                VStack(spacing: 5) { Text("Sofa").font(.largeTitle.bold()); Text("Your TV, from your Mac.").foregroundStyle(.secondary); Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.0") · Beta").font(.caption).foregroundStyle(.secondary) }
+                VStack(spacing: 5) { Text("Sofa").font(.largeTitle.bold()); Text("Your TV, from your Mac.").foregroundStyle(.secondary); Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0")").font(.caption).foregroundStyle(.secondary) }
                 HStack { Link("GitHub", destination: URL(string: "https://github.com/iamrainhard/sofa")!); Button("Check for updates") { tab = 2 } }
                 HStack { Link("Privacy", destination: URL(string: "https://github.com/iamrainhard/sofa/blob/main/docs/PRIVACY.md")!); Link("Help", destination: URL(string: "https://github.com/iamrainhard/sofa/blob/main/docs/TROUBLESHOOTING.md")!) }
                 Text("Free and open source. Made by Rainhard Ngambiye.\nIndependent software, not affiliated with TV manufacturers or platform owners.").font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 — build 16
+
+First stable release of Sofa. Android/Google TV and Samsung Tizen adapters remain experimental. Release packaging is in progress; Apple acceptance and publication are recorded separately.
+
+- Reconnect paired TVs after DHCP changes using a saved device identity and approved certificate; retain existing Keychain credentials and app playback preferences.
+- Broaden discovery across VIDAA SSDP/Netflix advertisements and Android, Cast, AirPlay and Samsung Bonjour hints, with remote-service verification, per-interface searches and retries.
+- Recover after connection loss, network changes and Mac wake; cancel stale work and stop at permission, certificate or pairing decisions.
+- Reject identity/certificate mismatches and ambiguous address migrations. Android and Samsung remain experimental; physical validation is limited to the development Hisense TV.
+
 ## 0.6.0-beta.1 — build 15 notarized beta
 
 - Add native Sparkle updates with daily checks, background downloads, installation on quit, and manual Check for Updates.

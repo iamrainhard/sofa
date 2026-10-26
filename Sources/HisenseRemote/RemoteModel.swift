@@ -15,7 +15,7 @@ final class RemoteModel: ObservableObject {
     @Published private var savedSeekingModes = UserDefaults.standard.dictionary(forKey: "appSeekingModes") as? [String: String] ?? [:]
     private var seekingPreferenceKey: String? {
         guard let destination = activeDestination else { return nil }
-        return TVPlaybackControl.preferenceKey(platform: activePlatform, host: connectedHost.isEmpty ? host : connectedHost,
+        return TVPlaybackControl.preferenceKey(platform: activePlatform, host: credentialAccount.isEmpty ? (connectedHost.isEmpty ? host : connectedHost) : credentialAccount,
                                                destination: destination.key)
     }
     var canConfigureSeeking: Bool { ready && seekingPreferenceKey != nil }
@@ -45,6 +45,81 @@ final class RemoteModel: ObservableObject {
     private var sessionID = UUID().uuidString
     private var discoveryID = UUID().uuidString
     private let androidDiscovery = TVDiscovery()
+    private var pairingRegistry = TVPairingRegistry()
+    private var connectionPairingID: String?
+    private var desiredPairingID: String?
+    private var pendingCandidate: DiscoveredTV?
+    private var discoveryCandidates: [DiscoveredTV] = []
+    private var credentialAccount = ""
+    private var approvedFingerprint = ""
+    private var recoveryEnabled = false
+    private var recoveryAttempt = 0
+    private var recoveringDiscovery = false
+    private var discoveryFinish: DispatchWorkItem?
+    private var pathMonitor: NWPathMonitor?
+    private var pathSignature: String?
+    private var wakeObserver: NSObjectProtocol?
+    private var stopping = false
+
+    private func persistPairings() {
+        guard previewState == nil, let data = try? JSONEncoder().encode(pairingRegistry) else { return }
+        defaults.set(data, forKey: "pairedTVRegistry.v1")
+        defaults.set(desiredPairingID, forKey: "selectedPairingID")
+    }
+    private func rememberConnectedTV() {
+        guard previewState == nil else { return }
+        connectionPairingID = pairingRegistry.remember(host: connectedHost, platform: activePlatform,
+            fingerprint: approvedFingerprint, credentialAccount: credentialAccount, id: connectionPairingID)
+        desiredPairingID = connectionPairingID
+        if let id = connectionPairingID {
+            for tv in discoveryCandidates { pairingRegistry.bind(tv, to: id) }
+        }
+        persistPairings()
+        recoveryAttempt = 0
+        if !discovering { discover() }
+    }
+    private func startNetworkRecovery() {
+        let monitor = NWPathMonitor(); pathMonitor = monitor
+        monitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor [weak self] in
+                guard let self, !self.stopping else { return }
+                let signature = "\(path.status):" + TVDiscovery.interfaces().joined(separator: ",")
+                let changed = self.pathSignature != nil && self.pathSignature != signature
+                self.pathSignature = signature
+                if changed && path.status == .satisfied && self.recoveryEnabled && !self.pairingNeedsAttention && self.status != "trust" && self.status != "pairing" {
+                    self.localNetworkNeedsAttention = false
+                    self.recoveryAttempt = 0
+                    self.connect()
+                }
+            }
+        }
+        monitor.start(queue: .global(qos: .utility))
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.recoveryEnabled, !self.stopping, self.status != "trust", self.status != "pairing", !self.pairingNeedsAttention else { return }
+                self.recoveryAttempt = 0; self.connect()
+            }
+        }
+    }
+    private func scheduleRecovery() {
+        guard previewState == nil, recoveryEnabled, !stopping, !localNetworkNeedsAttention,
+              !pairingNeedsAttention, status == "offline", !host.isEmpty else { return }
+        reconnectWork?.cancel()
+        let delay = min(60.0, 5.0 * pow(2.0, Double(min(recoveryAttempt, 4))))
+        recoveryAttempt += 1
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.recoveryEnabled, self.status == "offline", !self.stopping else { return }
+            self.discover(recovering: true)
+        }
+        reconnectWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+    private func stopDiscovery() {
+        discoveryFinish?.cancel(); discoveryFinish = nil
+        androidDiscovery.stop(); discovering = false; recoveringDiscovery = false
+        discoveryID = UUID().uuidString
+        send(["action": "cancel_discovery"])
+    }
     @Published var deviceName = "Your TV"
     @Published var nickname = UserDefaults.standard.string(forKey: "tvNickname") ?? "" {
         didSet { defaults.set(nickname, forKey: "tvNickname") }
@@ -62,38 +137,74 @@ final class RemoteModel: ObservableObject {
     }
     let previewState: String?
     func completeSetup() { onboardingComplete = true; defaults.set(true, forKey: "onboardingComplete") }
-    func discover() {
-        guard previewState == nil, !discovering else { return }
+    func discover(recovering: Bool = false) {
+        guard previewState == nil, !stopping else { return }
+        if discovering { if recovering { recoveringDiscovery = true }; return }
         startBridge()
-        guard process != nil else { return }
+        guard process != nil else { scheduleRecovery(); return }
         let token = UUID().uuidString
-        discoveryID = token
-        discovering = true; discoveredTVs = []; discoveryMessage = "Looking on your local network…"
+        discoveryID = token; recoveringDiscovery = recovering
+        discovering = true; discoveredTVs = []; discoveryCandidates = []; discoveryMessage = "Looking on your local network…"
+        send(["action": "discover", "discovery": token, "interfaces": TVDiscovery.interfaces()])
         androidDiscovery.start { [weak self] tv in
             guard let self, self.discoveryID == token, self.discovering else { return }
-            self.addDiscovered(tv)
+            self.send(["action": "inspect_device", "discovery": token, "host": tv.host,
+                       "platform": tv.platform.rawValue, "identity": tv.identity, "name": tv.name])
         } failed: { [weak self] in
             guard let self, self.discoveryID == token else { return }
-            self.discoveryMessage = "Discovery needs Local Network access. You can also enter an IP address."
+            self.discoveryMessage = "Some discovery services are unavailable. Check Local Network access."
         }
-        send(["action": "discover", "discovery": token])
-        DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+        // Also learn identity for an existing/manual pairing while it is reachable.
+        // Never scan guessed addresses or follow a supplied redirect.
+        if let address = ConnectionInput.privateIPv4(host), selectedPlatform == .vidaa || selectedPlatform == .samsung {
+            send(["action": "inspect_device", "discovery": token, "host": address, "platform": selectedPlatform.rawValue])
+        }
+        let finish = DispatchWorkItem { [weak self] in
             guard let self, self.discoveryID == token else { return }
-            self.androidDiscovery.stop(); self.discovering = false
-            self.discoveryMessage = self.discoveredTVs.isEmpty ? "No TV found. Check Local Network access or enter its address." : "Choose your TV to connect."
+            let recovery = self.recoveringDiscovery
+            self.stopDiscovery()
+            self.discoveryMessage = self.discoveredTVs.isEmpty ? "No compatible TV responded. Keep it awake, allow Local Network access, and check that your Wi-Fi permits devices to communicate." : "Choose your TV to connect."
+            if recovery && self.recoveryEnabled && self.status == "offline" {
+                if let id = self.desiredPairingID, let tv = self.pairingRegistry.recoveryCandidate(for: id, candidates: self.discoveryCandidates) {
+                    self.choose(tv)
+                } else {
+                    // Missing advertisements need not prevent the last verified address working.
+                    if let record = self.pairingRegistry.record(id: self.desiredPairingID) {
+                        self.host = record.lastHost
+                        self.selectedPlatform = TVConnectionPlatform(rawValue: record.platform) ?? .automatic
+                    }
+                    self.connect()
+                }
+            }
         }
+        discoveryFinish = finish
+        DispatchQueue.main.asyncAfter(deadline: .now() + 11, execute: finish)
     }
     private func addDiscovered(_ tv: DiscoveredTV) {
-        guard !discoveredTVs.contains(where: { $0.id == tv.id }) else { return }
-        discoveredTVs.append(tv)
+        guard ConnectionInput.privateIPv4(tv.host) != nil, tv.platform != .automatic,
+              TVPairingRegistry.validFingerprint(tv.fingerprint) else { return }
+        if !discoveryCandidates.contains(where: { $0.id == tv.id && $0.identity == tv.identity }), discoveryCandidates.count < 128 {
+            discoveryCandidates.append(tv)
+        }
+        // Keep alternate stable identifiers for one endpoint, but render one tile.
+        if ready, connectedHost == tv.host, let id = connectionPairingID {
+            pairingRegistry.bind(tv, to: id); persistPairings()
+        }
+        if let index = discoveredTVs.firstIndex(where: { $0.id == tv.id }) {
+            if discoveredTVs[index].identity.isEmpty || pairingRegistry.uniqueMatch(tv) != nil { discoveredTVs[index] = tv }
+        } else { discoveredTVs.append(tv) }
         discoveryMessage = "Choose your TV to connect."
     }
     func choose(_ tv: DiscoveredTV) {
+        pendingCandidate = tv
         host = tv.host; selectedPlatform = tv.platform; deviceName = tv.name
         connect()
     }
     func forgetTV() {
         guard clearCredentials(host) else { error = "Sofa couldn’t remove the pairing from Keychain. Unlock your login Keychain and try again."; return }
+        let forgottenID = connectionPairingID ?? desiredPairingID
+        pairingRegistry.records.removeAll { $0.id == forgottenID }
+        desiredPairingID = nil; connectionPairingID = nil; persistPairings()
         disconnect(); defaults.removeObject(forKey: activePlatform.certificateKey(host: host))
         host = ""; nickname = ""; deviceName = "Your TV"; defaults.removeObject(forKey: "tvHost")
         onboardingComplete = false; defaults.set(false, forKey: "onboardingComplete"); settingsVisible = false
@@ -257,6 +368,9 @@ final class RemoteModel: ObservableObject {
             return
         }
         startBridge()
+        if let data = defaults.data(forKey: "pairedTVRegistry.v1"), let registry = try? JSONDecoder().decode(TVPairingRegistry.self, from: data) { pairingRegistry = registry }
+        desiredPairingID = defaults.string(forKey: "selectedPairingID")
+        startNetworkRecovery()
         if onboardingComplete && reconnectOnLaunch { connect() }
     }
     func startBridge() {
@@ -303,9 +417,9 @@ final class RemoteModel: ObservableObject {
     }
     func bridgeEnded(generation: UUID) {
         guard generation == bridgeGeneration else { return }
-        process = nil; input = nil; status = "offline"; isBusy = false
+        process = nil; input = nil; status = "offline"; isBusy = false; scheduleRecovery()
     }
-    func shutdown() { destinationTimeout?.cancel(); destinationRefresh?.cancel(); volumeWork?.cancel(); volumeTimeout?.cancel(); volumeReadback?.cancel(); powerTimeout?.cancel(); powerRefresh?.cancel(); androidDiscovery.stop(); networkCheck?.cancel(); input?.closeFile(); process?.terminate(); reader?.cancel() }
+    func shutdown() { stopping = true; recoveryEnabled = false; reconnectWork?.cancel(); stopDiscovery(); pathMonitor?.cancel(); if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }; destinationTimeout?.cancel(); destinationRefresh?.cancel(); volumeWork?.cancel(); volumeTimeout?.cancel(); volumeReadback?.cancel(); powerTimeout?.cancel(); powerRefresh?.cancel(); androidDiscovery.stop(); networkCheck?.cancel(); input?.closeFile(); process?.terminate(); reader?.cancel() }
     func send(_ value: [String: Any]) {
         var message = value
         message["session"] = sessionID
@@ -319,7 +433,15 @@ final class RemoteModel: ObservableObject {
             error = "Enter your TV’s private IPv4 address, such as 192.168.1.100."; return
         }
         networkCheck?.cancel(); networkCheck = nil
-        androidDiscovery.stop(); discovering = false; discoveryID = UUID().uuidString
+        stopDiscovery()
+        recoveryEnabled = true
+        if let tv = pendingCandidate, tv.host == candidate, tv.platform == selectedPlatform {
+            connectionPairingID = pairingRegistry.uniqueMatch(tv)?.id
+        } else {
+            connectionPairingID = pairingRegistry.records.first { $0.lastHost == candidate && ($0.platform == selectedPlatform.rawValue || selectedPlatform == .automatic) }?.id
+        }
+        pendingCandidate = nil
+        desiredPairingID = connectionPairingID
         reconnectWork?.cancel()
         sessionID = UUID().uuidString
         startBridge()
@@ -341,7 +463,8 @@ final class RemoteModel: ObservableObject {
             if candidates.count > 1 { self.checkNetwork(host, candidates: Array(candidates.dropFirst()), session: session) }
             else {
                 self.status = "offline"; self.isBusy = false
-                self.error = "No compatible remote service responded. Keep the TV awake, check its address, or select its platform below."
+                self.error = "No compatible remote service responded. Keep the TV awake and check Local Network access. Sofa will look for your saved TV again."
+                self.scheduleRecovery()
             }
         }
         check.stateUpdateHandler = { [weak self, weak check] state in
@@ -375,14 +498,22 @@ final class RemoteModel: ObservableObject {
         hasVolume = false; apps = []; sources = []; connectedHost = host
         modelName = activePlatform == .samsung ? "Samsung · Tizen (experimental)" : activePlatform == .androidtv ? "Google / Android TV" : "Hisense · VIDAA"
         sourceName = activePlatform == .samsung ? "Samsung TV" : "Connected TV"
-        defaults.set(host, forKey: "tvHost")
+        // Save the endpoint only after authentication, not on a failed probe.
+        if let selected = pairingRegistry.record(id: connectionPairingID), selected.platform != activePlatform.rawValue {
+            connectionPairingID = nil; desiredPairingID = nil
+        }
+        let record = pairingRegistry.record(id: connectionPairingID)
+        credentialAccount = record?.credentialAccount ?? host
+        approvedFingerprint = record?.fingerprint ?? defaults.string(forKey: activePlatform.certificateKey(host: host)) ?? ""
+        // Android's existing adapter expects uppercase; other adapters use lowercase.
+        approvedFingerprint = activePlatform == .androidtv ? approvedFingerprint.uppercased() : approvedFingerprint.lowercased()
         defaults.set(activePlatform.rawValue, forKey: "tvConnectionPlatform")
         selectedPlatform = activePlatform
         var request: [String: Any] = ["action": "connect", "host": host, "device": deviceID,
                                      "platform": activePlatform.rawValue, "enable_ime": androidIME,
-                                     "fingerprint": defaults.string(forKey: activePlatform.certificateKey(host: host)) ?? ""]
+                                     "fingerprint": approvedFingerprint]
         do {
-            if let saved = try loadCredentials(host) { request["saved"] = saved }
+            if let saved = try loadCredentials(credentialAccount) { request["saved"] = saved }
         } catch {
             pairingNeedsAttention = true
             self.error = "Sofa couldn’t read its saved pairing. Unlock your login Keychain and allow Sofa when macOS asks, then connect again. If the saved pairing is damaged, use Pair again."
@@ -393,6 +524,11 @@ final class RemoteModel: ObservableObject {
     func trustTV() {
         guard !fingerprint.isEmpty else { return }
         defaults.set(fingerprint, forKey: activePlatform.certificateKey(host: host))
+        if let index = pairingRegistry.records.firstIndex(where: { $0.id == connectionPairingID }) {
+            pairingRegistry.records[index].fingerprint = fingerprint.lowercased()
+            pairingRegistry.records[index].identities = []
+            persistPairings()
+        }
         connect()
     }
     func pair() {
@@ -411,6 +547,7 @@ final class RemoteModel: ObservableObject {
         connect()
     }
     func disconnect() {
+        recoveryEnabled = false; stopDiscovery()
         sessionID = UUID().uuidString
         networkCheck?.cancel(); networkCheck = nil
         reconnectWork?.cancel()
@@ -526,7 +663,7 @@ final class RemoteModel: ObservableObject {
             guard object["discovery"] as? String == discoveryID, discovering else { return }
             for value in object["devices"] as? [[String: String]] ?? [] {
                 guard let host = value["host"] else { continue }
-                addDiscovered(DiscoveredTV(host: host, name: value["name"] ?? "VIDAA TV", model: value["model"] ?? "", platform: TVConnectionPlatform(rawValue: value["platform"] ?? "vidaa") ?? .vidaa))
+                addDiscovered(DiscoveredTV(host: host, name: value["name"] ?? "VIDAA TV", model: value["model"] ?? "", platform: TVConnectionPlatform(rawValue: value["platform"] ?? "vidaa") ?? .vidaa, identity: value["identity"] ?? "", fingerprint: value["fingerprint"] ?? ""))
             }
         case "device":
             if let name = object["name"] as? String, !name.isEmpty { deviceName = name }
@@ -565,7 +702,12 @@ final class RemoteModel: ObservableObject {
             status = object["value"] as? String ?? "offline"
             isBusy = status == "connecting"
             if status == "pairing" { settingsVisible = onboardingComplete; pendingPair = activePlatform == .androidtv }
+            if status == "offline" { scheduleRecovery() }
             if ready {
+                if previewState == nil {
+                    defaults.set(connectedHost, forKey: "tvHost")
+                    rememberConnectedTV()
+                }
                 pendingPair = false; waitingForTVApproval = false; pin = ""; error = credentialWarning; activity = "You’re in control"
 
             }
@@ -574,7 +716,7 @@ final class RemoteModel: ObservableObject {
             certificateChanged = object["changed"] as? Bool ?? false
             status = "trust"; settingsVisible = onboardingComplete; isBusy = false
         case "credentials":
-            if let value = object["value"] as? [String: Any] { saveCredentials(value, host: connectedHost) }
+            if let value = object["value"] as? [String: Any] { saveCredentials(value, host: credentialAccount) }
         case "apps": apps = TVItem.parse(object["value"], keys: ["name", "appName", "appname", "title"], kind: .app)
         case "sources": sources = TVItem.parse(object["value"], keys: ["sourcename", "sourceName", "name", "displayname"], kind: .input)
         case "state":
@@ -599,6 +741,7 @@ final class RemoteModel: ObservableObject {
             error = object["message"] as? String ?? "The TV didn’t respond."
             isBusy = false
             if status == "connecting" { status = "offline" }
+            if status == "offline" { scheduleRecovery() }
         default: break
         }
     }
@@ -630,7 +773,8 @@ final class RemoteModel: ObservableObject {
         if let credentialWarning { error = credentialWarning }
     }
     private func clearCredentials(_ host: String) -> Bool {
-        let result = SecItemDelete(keychainQuery(host) as CFDictionary)
+        let account = pairingRegistry.record(id: connectionPairingID)?.credentialAccount ?? host
+        let result = SecItemDelete(keychainQuery(account) as CFDictionary)
         return result == errSecSuccess || result == errSecItemNotFound
     }
 }

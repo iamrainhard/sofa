@@ -29,13 +29,13 @@ python3 - <<'PY'
 import plistlib
 from pathlib import Path
 p=Path('build/Sofa.app/Contents/Info.plist')
-d=dict(CFBundleExecutable='Sofa',CFBundleIdentifier='com.rain.luma-remote',CFBundleName='Sofa',CFBundleDisplayName='Sofa',CFBundleVersion='15',CFBundleShortVersionString='0.6.0-beta.1',CFBundlePackageType='APPL',LSMinimumSystemVersion='26.0',LSUIElement=True,NSHighResolutionCapable=True,NSLocalNetworkUsageDescription='Sofa connects to your TV on your home network for discovery, remote controls and pairing.',NSBonjourServices=['_androidtvremote2._tcp'])
+d=dict(CFBundleExecutable='Sofa',CFBundleIdentifier='com.rain.luma-remote',CFBundleName='Sofa',CFBundleDisplayName='Sofa',CFBundleVersion='16',CFBundleShortVersionString='1.0.0',CFBundlePackageType='APPL',LSMinimumSystemVersion='26.0',LSUIElement=True,NSHighResolutionCapable=True,NSLocalNetworkUsageDescription='Sofa connects to your TV on your home network for discovery, remote controls and pairing.',NSBonjourServices=['_androidtvremote2._tcp', '_googlecast._tcp', '_airplay._tcp', '_samsungmsf._tcp'])
 d.update(plistlib.loads(Path('build/icon-info.plist').read_bytes()))
 d.update(plistlib.loads(Path('Resources/Updater.plist').read_bytes()))
 p.write_bytes(plistlib.dumps(d))
 h=Path('build/Sofa.app/Contents/Helpers/SofaBridge.app/Contents/Info.plist')
 helper=plistlib.loads(h.read_bytes())
-helper.update(CFBundleIdentifier='com.rain.sofa.bridge',CFBundleVersion='15',CFBundleShortVersionString='0.6.0',LSUIElement=True,NSLocalNetworkUsageDescription=d['NSLocalNetworkUsageDescription'])
+helper.update(CFBundleIdentifier='com.rain.sofa.bridge',CFBundleVersion='16',CFBundleShortVersionString='1.0.0',LSUIElement=True,NSLocalNetworkUsageDescription=d['NSLocalNetworkUsageDescription'])
 h.write_bytes(plistlib.dumps(helper))
 PY
 SIGNING_IDENTITY="${SOFA_SIGNING_IDENTITY:--}"
