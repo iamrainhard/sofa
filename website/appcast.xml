@@ -9,6 +9,40 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <description>Signed, notarized Sofa releases for Apple silicon Macs.</description>
         <language>en</language>
         <item>
+            <title>1.0.0</title>
+            <pubDate>Mon, 26 Oct 2026 22:11:04 +0300</pubDate>
+            <link>https://iamrainhard.github.io/sofa/</link>
+            <sparkle:version>16</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Sofa — Your TV, from your Mac.
+
+Sofa 1.0.0 is the first stable release. Build 16 improves discovery and keeps your TV pairing when its network address changes. Android/Google TV and Samsung Tizen adapters remain experimental.
+
+### Find your TV again automatically
+- Remember the paired TV’s stable identity and approved certificate, with credentials retained in their original Keychain item.
+- Rediscover a known TV after its IP address changes and reconnect without a new pairing code when its identity and certificate match.
+- Search more VIDAA, Android/Google TV and Samsung announcements, verify remote services, and retry after connection loss, network changes and Mac wake.
+- Keep explicit recovery guidance for denied Local Network permission, missing remote services and certificate changes.
+
+### Installation and updates
+Download the **DMG**, drag Sofa to Applications, then open it normally. Requires Apple silicon and macOS 26 or later. Existing build 15 users receive this release through Sofa’s signed automatic update feed; earlier builds need one manual DMG installation. Saved TV pairings are preserved.
+
+The ZIP is the automatic-update package. Use the DMG for normal manual installation. SHA-256 checksums accompany both files.
+
+### Validation and compatibility
+- Apple notarization accepted. Developer ID signed, with the notarization ticket stapled. The app inside both the DMG and updater ZIP passes Gatekeeper assessment.
+- 73 Python tests and Swift state checks passed, including protocol, TLS, identity migration, persistence and discovery cancellation tests.
+- On the development Hisense VIDAA TV, Sofa recovered from a deliberately stale saved address and reconnected without a new pairing code. The same pairing identity, certificate and Keychain account were retained. This was a saved-address simulation, not a router DHCP lease change.
+- VIDAA is physically tested on one Hisense A4K-series TV. Other models and firmware need wider testing. Android/Google TV and Samsung have automated coverage but no physical-device verification yet.
+- Sleeping TVs, denied permissions, blocked multicast and network isolation can prevent discovery. Android devices need Android TV Remote Service v2. Samsung needs secure remote control; older Orsay TVs are unsupported. Volume sliders appear only with compatible feedback.
+
+Free and open source under the MIT license. No Sofa account or analytics.
+]]></description>
+            <enclosure url="https://github.com/iamrainhard/sofa/releases/download/v1.0.0-build16/Sofa-1.0.0-build16-arm64-notarized.zip" length="18274233" type="application/octet-stream" sparkle:edSignature="AhpRml13T/bayU6cYbKDYD+SJk6C3NeSBbFNihGrjqLBEwuImN52e4JYtCGVlGsz0QdT8ecYHPQdmwM5bLfRDA=="/>
+        </item>
+        <item>
             <title>0.6.0-beta.1</title>
             <pubDate>Tue, 20 Oct 2026 13:02:08 +0300</pubDate>
             <link>https://iamrainhard.github.io/sofa/</link>
@@ -48,6 +82,6 @@ Free and open source under the MIT license. No Sofa account or analytics. See do
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: 6mxipBLA+ZrdefRsfS+11HaNNSj+Qyay+Nq1Ejq8n/TiHmoNN9juutRJT1b/MsfU7CDAp+pnG5TJvWm15qjVAA==
-length: 3865
+edSignature: koaqh6hrfdRuSOBGWSzWAayjO/y3ZF4YoRUNGSFjboq7X3iC2yYazpgrLR0Pm2AgKEWiHX9NIMLXslBpUVB9Bw==
+length: 7133
 -->

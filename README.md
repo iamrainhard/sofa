@@ -6,7 +6,7 @@
 
 Sofa brings your TV’s remote, apps, inputs and volume into a small native macOS panel. Built with SwiftUI, AppKit and Apple’s Liquid Glass components.
 
-**Beta software. macOS 26 or later · Apple silicon.** VIDAA has been tested with one Hisense A4K-series TV. Google / Android TV support in 0.4 is experimental and currently validated with a local protocol fixture, not physical Android TV hardware. Compatibility varies by model and firmware. This is independent software, not an official Hisense, VIDAA or Apple product.
+**Sofa 1.0 · macOS 26 or later · Apple silicon.** VIDAA has been tested with one Hisense A4K-series TV. Google / Android TV support is experimental and currently validated with a local protocol fixture, not physical Android TV hardware. Compatibility varies by model and firmware. This is independent software, not an official Hisense, VIDAA or Apple product.
 
 <p align="center">
   <img src="docs/images/home-transparent.png" width="240" alt="Sofa Home dashboard with active TV app, volume and horizontal app shelf">
@@ -17,16 +17,16 @@ Sofa brings your TV’s remote, apps, inputs and volume into a small native macO
 
 ## Download
 
-Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v0.6.0-beta.1-build15).
+Visit the [Sofa website](https://iamrainhard.github.io/sofa/) or [GitHub Releases](https://github.com/iamrainhard/sofa/releases/tag/v1.0.0-build16).
 
-**Build 15 is Developer ID signed and Apple notarized.** The DMG contains the approved app with its notarization ticket stapled, an Applications shortcut and installation instructions. The app inside the DMG and ZIP passes Gatekeeper assessment. SHA-256 checksums are included. Open Sofa normally after installing it; macOS may ask you to confirm opening a downloaded app.
+**Sofa 1.0.0 (build 16) is Developer ID signed and Apple notarized.** The DMG contains the approved app with its notarization ticket stapled, an Applications shortcut and installation instructions. The app inside the DMG and ZIP passes Gatekeeper assessment. SHA-256 checksums are included. Open Sofa normally after installing it; macOS may ask you to confirm opening a downloaded app.
 
-1. [Download the DMG](https://github.com/iamrainhard/sofa/releases/download/v0.6.0-beta.1-build15/Sofa-0.6.0-beta.1-build15-arm64-notarized.dmg), open it, and drag **Sofa** onto **Applications**. Eject the disk image.
+1. [Download the DMG](https://github.com/iamrainhard/sofa/releases/download/v1.0.0-build16/Sofa-1.0.0-build16-arm64-notarized.dmg), open it, and drag **Sofa** onto **Applications**. Eject the disk image.
 2. Open Sofa. Its icon appears in your menu bar; it has no persistent Dock window.
 3. Keep your Mac and TV on the same home network. Allow Local Network access when macOS asks.
 4. Choose **Set up my TV**. Discover a nearby compatible TV or enter the private IPv4 address shown in the TV’s network settings.
 5. Sofa detects the connection platform; you can also choose it manually. Verify the address and trust the TV’s certificate. VIDAA uses a numeric pairing code; Google / Android TV displays a six-character hexadecimal code (digits and A–F). For Samsung Tizen, select **Allow** on the TV.
-6. Once paired, choose a name and open Sofa. Existing VIDAA pairings are preserved when upgrading.
+6. Once paired, choose a name and open Sofa. Existing saved pairings are preserved when upgrading.
 
 No Python, Homebrew, Xcode or Sofa account is required to use the packaged app. Login startup is optional and off by default.
 
@@ -55,13 +55,13 @@ The TV illustration shows app/input identity, not screen mirroring. Sofa control
 | Samsung Tizen | Experimental in 0.5 | Secure remote service, on-TV Allow approval, navigation, playback, volume keys and a slider when a compatible UPnP volume service responds. Hardware testing pending. |
 | Roku, Fire TV, Xumo | Not implemented | Selecting Android TV does not make these devices compatible. |
 
-Android support is platform-based, not restricted to Hisense. A TV must expose Android TV Remote Service; generic Android boxes without that service are not supported. No root, ADB or developer mode is needed. Discovery uses Bonjour and VIDAA SSDP (plus Samsung SSDP in build 13), with private IPv4/manual setup as a fallback.
+Android support is platform-based, not restricted to Hisense. A TV must expose Android TV Remote Service; generic Android boxes without that service are not supported. No root, ADB or developer mode is needed. Discovery combines Bonjour and SSDP across active local IPv4 interfaces, verifies compatible remote services, and retries after connection loss. Once Sofa has learned a paired TV’s stable identity and approved certificate, it can follow an IP-address change without pairing again. Private IPv4/manual setup remains a fallback. Sleeping TVs, denied permissions or network isolation can prevent discovery.
 
 Android app tiles are **shortcuts, not a detected installed-app list**. Apps must already be installed and handle the link. Android keeps the glass slider when volume feedback is available: Sofa sends one relative key at a time, follows the latest drag target, and settles to the nearest native volume step. If feedback stalls, it stops and falls back to −/+ until reconnect. It may respond more slowly than VIDAA’s direct setter. Input, channel, mute and wake behavior depend on the television and audio setup. If a manufacturer keyboard behaves poorly, disable **Keyboard and current app updates** in Settings and reconnect. No voice recording is implemented.
 
 ## Experimental Samsung Tizen (build 13)
 
-The **0.5.0-beta.1 build 13** beta adds Samsung Tizen support. No physical Samsung TV has been tested.
+Samsung Tizen support remains experimental. No physical Samsung TV has been tested.
 
 - Find a Samsung TV on the local network, or select **Samsung Tizen · Experimental** and enter its private IPv4 address. This adapter requires the secure Tizen WebSocket service on TCP 8002; older Orsay and plaintext-only models are not supported.
 - Verify the TV address and trust its certificate. Select **Allow** on the television using its physical remote. No PIN, SmartThings account, root or developer mode is required. Sofa saves the pairing token in its own Keychain namespace for reconnects. Denied or expired requests have a retry path.
@@ -86,9 +86,9 @@ bash build.sh
 
 Output: `build/Sofa.app`. The default source build is ad-hoc signed for local development; it is not a notarized public download. The bridge uses CPython 3.12 and PyInstaller 6.22.3, bundled by the build. The helper rebuilds automatically when adapter sources or pinned dependencies change; `SOFA_REBUILD_HELPER=1` forces a rebuild. See [Releasing](docs/RELEASING.md) for Developer ID signing and notarization.
 
-## Beta coverage
+## Validation and compatibility
 
-Protocol framing, authentication gates, key payloads, certificate change handling, volume state and catalog identity have automated checks. Android tests use local TLS servers and the actual pinned protocol library to verify PIN pairing, certificate checks, saved reconnect, state updates and wire commands. Router checks reject events/commands from an earlier connection session. These fixtures do not establish compatibility with a physical Android TV. Core Home, arrows/OK, volume and mute were verified with a physical TV during development. Channel controls, every app/input, wake from standby, first installation on another Mac and long-duration sleep/wake need wider beta testing. Please include your model and firmware in an issue, but never pairing codes, tokens, device IDs or private network captures.
+Protocol framing, authentication gates, key payloads, certificate change handling, volume state and catalog identity have automated checks. Android tests use local TLS servers and the actual pinned protocol library to verify PIN pairing, certificate checks, saved reconnect, state updates and wire commands. Router checks reject events/commands from an earlier connection session. These fixtures do not establish compatibility with a physical Android TV. Core Home, arrows/OK, volume and mute were verified with a physical TV during development. Channel controls, every app/input, wake from standby, first installation on another Mac and long-duration sleep/wake need wider device testing. Please include your model and firmware in an issue, but never pairing codes, tokens, device IDs or private network captures.
 
 ## Contribute
 
@@ -101,4 +101,4 @@ Sofa source and original artwork are MIT licensed. Shared VIDAA protocol researc
 
 ### Automatic updates
 
-Build 15 includes native updates through Sparkle: daily checks, background downloads, installation when you quit, and **Check for Updates** in the menu. **Settings → Updates** lets you turn either automatic behavior off. Signed feeds and downloads are verified, and existing TV pairing is retained. Users on build 13 or 14 need one manual upgrade to build 15 to enable future in-app updates. The public signed feed offers only verified, notarized releases.
+Build 15 and later include native updates through Sparkle: daily checks, background downloads, installation when you quit, and **Check for Updates** in the menu. **Settings → Updates** lets you turn either automatic behavior off. Signed feeds and downloads are verified, and existing TV pairing is retained. Users on build 13 or 14 need one manual upgrade to the current DMG to enable future in-app updates. The public signed feed offers only verified, notarized releases.

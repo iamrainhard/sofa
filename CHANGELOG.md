@@ -2,7 +2,7 @@
 
 ## 1.0.0 — build 16
 
-First stable release of Sofa. Android/Google TV and Samsung Tizen adapters remain experimental. Release packaging is in progress; Apple acceptance and publication are recorded separately.
+First stable release of Sofa. Android/Google TV and Samsung Tizen adapters remain experimental. Apple notarization accepted. The app is Developer ID signed and stapled; distribution packages are verified before publication.
 
 - Reconnect paired TVs after DHCP changes using a saved device identity and approved certificate; retain existing Keychain credentials and app playback preferences.
 - Broaden discovery across VIDAA SSDP/Netflix advertisements and Android, Cast, AirPlay and Samsung Bonjour hints, with remote-service verification, per-interface searches and retries.

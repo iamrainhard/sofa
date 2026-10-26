@@ -1,6 +1,6 @@
 # Discovery and pairing — build 16
 
-Local development status, 2026-10-26. Installed and Developer ID signed; not submitted for notarization or published. Public release assets, website and update feed remain unchanged.
+Release status, 2026-10-26. Sofa 1.0.0 build 16 is Developer ID signed and Apple notarization accepted. The signed DMG, updater ZIP and SHA-256 files are published as the stable v1.0.0-build16 GitHub release. Both packaged apps passed staple and Gatekeeper checks. GitHub’s clean-machine build and checks also passed. Website and signed-feed deployment, followed by an installed upgrade test, are in progress. The earlier beta-labelled build 16 archive is retained but will not be published.
 
 ## Implemented
 
@@ -21,4 +21,4 @@ Local development status, 2026-10-26. Installed and Developer ID signed; not sub
 - Android/Google TV and Samsung recovery have automated coverage but still need physical pairing, IP-change and network-change tests. A generic Android TV without the compatible Remote Service is not supported by discovery alone.
 - Network isolation, blocked multicast, denied Local Network permission, sleeping TVs and missing remote services can prevent discovery. Saved-address retry helps when advertisements are missing; it cannot find an unknown new address without a usable announcement.
 - An older installation needs one authenticated reachable connection to learn the device identity. If its old address is already unreachable and no identity was learned, explicit device selection/trust may still be necessary.
-- Next release work: preserve this build, submit for notarization, verify the accepted packaged app and then publish versioned assets and update feed within authorized release scope.
+- Physical Android/Samsung tests and wider sleep/wake/network-change coverage remain the next compatibility work.
